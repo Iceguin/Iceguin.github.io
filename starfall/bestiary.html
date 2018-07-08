@@ -2,30 +2,14 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
 <script type="text/javascript">
-   var ExternalURL = "docs.google.com/spreadsheets/d/1frzydbUxPP8IsshA60zzUHn_PIxSNi6zlZ8zw3vsgM8/pubhtml?gid=0&single=true&chrome=false&range=A:D"; // This address must not contain any leading “http://”
-   var ContentLocationInDOM = "null"; // If you’re trying to get sub-content from the page, specify the “CSS style” jQuery syntax here, otherwise set this to “null”
+   $.getJSON('https://docs.google.com/spreadsheets/u/1/d/1frzydbUxPP8IsshA60zzUHn_PIxSNi6zlZ8zw3vsgM8/pubhtml?gid=0&single=true&chrome=false&range=A:D', function(data){
+	var entry = data.feed.entry;
 
-   $(document).ready(loadContent);
-   function loadContent()
-   {
-      var QueryURL = "http://anyorigin.com/get?url=" + ExternalURL + "&callback=?";
-      $.getJSON(QueryURL, function(data){
-         if (data && data != null && typeof data == "object" && data.contents && data.contents != null && typeof data.contents == "string")
-         {
-            if (data.length > 0)
-            {
-               if (ContentLocationInDOM && ContentLocationInDOM != null && ContentLocationInDOM != "null")
-               {
-                  $('#queryResultContainer').html($(ContentLocationInDOM, data));
-               }
-               else
-               {
-                  $('#queryResultContainer').html(data);
-               }
-            }
-         }
-      });
-   }
+  $(entry).each(function(){
+    // Column names are name, age, etc.
+    $('.results').prepend('<h2>'+this.gsx$name.$t+'</h2><p>'+this.gsx$age.$t+'</p>');
+  });
+});
 </script>
 <div id="queryResultContainer"/>
 
