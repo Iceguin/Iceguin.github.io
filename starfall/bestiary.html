@@ -12,7 +12,6 @@
       $.getJSON(QueryURL, function(data){
          if (data && data != null && typeof data == "object" && data.contents && data.contents != null && typeof data.contents == "string")
          {
-            data = data.contents.replace("/<script[^>]*>[sS]*?</script>/gi", "");
             if (data.length > 0)
             {
                if (ContentLocationInDOM && ContentLocationInDOM != null && ContentLocationInDOM != "null")
@@ -31,7 +30,7 @@
 <div id="queryResultContainer"/>
 
 <style>
-	.bestiary_list {display:none;}
+	#bestiary_list {display:none;}
 	#bestiary > table { position: absolute; top: 20%; bottom: 20%; left: 30%; right: 30%;}
 </style>
 
