@@ -5,53 +5,28 @@
 
 <script type="text/javascript">
 
-// format request
-function createCORSRequest(method, url) {
-  var xhr = new XMLHttpRequest();
-  if ("withCredentials" in xhr) {
-
-    // Check if the XMLHttpRequest object has a "withCredentials" property.
-    // "withCredentials" only exists on XMLHTTPRequest2 objects.
-    xhr.open(method, url, true);
-
-  } else if (typeof XDomainRequest != "undefined") {
-
-    // Otherwise, check if XDomainRequest.
-    // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
-    xhr = new XDomainRequest();
-    xhr.open(method, url);
-
-  } else {
-
-    // Otherwise, CORS is not supported by the browser.
-    xhr = null;
-
+$.ajax({
+  type: 'GET',
+  url: 'https://www.gocomics.com/calvinandhobbes/2018/07/29',
+  contentType: 'application/json',
+  dataType:'jsonp',
+  responseType:'application/json',
+  xhrFields: {
+    withCredentials: false
+  },
+  headers: {
+    'Access-Control-Allow-Credentials' : true,
+    'Access-Control-Allow-Origin':'*',
+    'Access-Control-Allow-Methods':'GET',
+    'Access-Control-Allow-Headers':'application/json',
+  },
+  success: function(data) {
+    console.log(data);
+  },
+  error: function(error) {
+    console.log("FAIL....=================");
   }
-  return xhr;
-}
-
-//makerequest
-function makeCorsRequest(url) {
-  var xhr = createCORSRequest('GET', url);
-  if (!xhr) {
-    alert('CORS not supported');
-    return;
-  }
-
-  // Response handlers.
-  xhr.onload = function() {
-    var text = xhr.responseText;
-    alert('Response from CORS request to ' + url + ': ' + text);
-  };
-
-  xhr.onerror = function() {
-    alert('Woops, there was an error making the request.');
-  };
-
-  xhr.send();
-}
-
-makeCorsRequest('https://www.gocomics.com/calvinandhobbes/2018/07/29');
+});
 
 
 </script>
