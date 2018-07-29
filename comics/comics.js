@@ -1,3 +1,9 @@
-$.get("https://www.gocomics.com/calvinandhobbes/2018/07/29", function(data, status){
-        alert("Data: " + data + "\nStatus: " + status);
-    });
+$.ajax({
+    type: 'GET',
+    url: "https://www.gocomics.com/calvinandhobbes/2018/07/29",
+    headers: {
+        "Access-Control-Allow-Origin": "*"
+    }
+}).done(function(data) { 
+    alert(data);
+});
