@@ -8,8 +8,6 @@
 $.ajax({
   type: 'GET',
   url: 'https://www.gocomics.com/calvinandhobbes/2018/07/29',
-  contentType: 'application/json',
-  dataType:'jsonp',
   responseType:'text/html',
   xhrFields: {
     withCredentials: false
@@ -19,6 +17,7 @@ $.ajax({
     'Access-Control-Allow-Origin':'*',
     'Access-Control-Allow-Methods':'GET',
     'Access-Control-Allow-Headers':'application/json',
+    'Content-Type': 'text/html; charset=utf-8',
   },
   success: function(data) {
     console.log(data);
