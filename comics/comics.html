@@ -112,7 +112,7 @@ textarea {
         url: urlField.value
       }, function printResult(result) {
 
-        outputField.value = result.find('h2.media-heading');
+        outputField.value = $(result).find('h2.media-heading');
 
       });
     };
