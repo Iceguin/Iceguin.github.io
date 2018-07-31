@@ -111,8 +111,8 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-
-        outputField.value = $(result).find('h2.media-heading');
+      	console.log(result);
+        outputField.value = $(result)[0].find('h2.media-heading');
 
       });
     };
