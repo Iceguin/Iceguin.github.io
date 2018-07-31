@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Demo of CORS Anywhere</title>
+<title>Daily Comics</title>
 <meta name="viewport" content="width=device-width">
 <style>
 html, body {
@@ -46,9 +46,7 @@ textarea {
 </head>
 <body>
 <div id="top">
-  CORS Anywhere demo &bull; <a href="https://github.com/Rob--W/cors-anywhere/">Github</a> &bull; <a href="http://cors-anywhere.herokuapp.com">Live server</a>.
   <label>
-    Url to be fetched (example: <a href="//robwu.nl/dump.php">robwu.nl/dump.php</a>)
     <input type="url" id="url" value="">
   </label>
 
@@ -62,6 +60,31 @@ textarea {
 
 <script>
   var cors_api_url = 'https://cors-anywhere.herokuapp.com/';
+
+  var comics = {
+  	'calvinandhobbes',
+  	'garfield',
+  	'foxtrot',
+  	'doonesbury',
+  	'peanuts',
+  	'pearlsbeforeswine',
+  	'getfuzzy',
+  	'the-born-loser',
+  	'wizardofid',
+  	'ziggy',
+  	'closetohome',
+  	'nonsequitur',
+  	'forbetterorforworse',
+  	'andycapp',
+  	'bloomcounty',
+  	'broomhilda',
+  	'cathy',
+  	'fowl-language',
+  	'momma',
+  	'nestheads',
+  	'pickles'
+  };
+
   function doCORSRequest(options, printResult) {
     var x = new XMLHttpRequest();
     x.open(options.method, cors_api_url + options.url);
@@ -88,7 +111,9 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-        outputField.value = result;
+
+        outputField.value = result.find('h2.media-heading');
+        
       });
     };
   })();
