@@ -108,8 +108,9 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-      	console.log($.parseHTML(result));
-        /*outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
+      	console.log($('.comic__image img', $.parseHTML(result)))
+      	/*console.log($.parseHTML(result));
+        outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
 
       });
     };
