@@ -113,7 +113,7 @@ textarea {
         url: urlField.value
       }, function printResult(result) {
       	console.log(result);
-        outputField.value = $(result)[0].find('h2.media-heading');
+        outputField.value = $(result).find('h2.media-heading');
 
       });
     };
