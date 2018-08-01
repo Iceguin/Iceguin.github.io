@@ -107,7 +107,7 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-      	$('.comic__image img', $.parseHTML(result)).appendTo('#bottom');
+      	$('.comic__image img.img-fluid', $.parseHTML(result)).appendTo('#bottom');
       	/*console.log($.parseHTML(result));
         outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
 
