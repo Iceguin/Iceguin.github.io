@@ -91,7 +91,7 @@ html, body {
         	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
       		}, function printGoComics(result) {
 		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
-		      	var comictitle = $('h2.media-heading', $.parseHTML(result));
+		      	var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
 		      	console.log(comictitle);
 		      	$("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+comictitle+'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
 		    }
