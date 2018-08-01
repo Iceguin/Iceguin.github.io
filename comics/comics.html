@@ -107,9 +107,10 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-      	$('.comic__image img.img-fluid', $.parseHTML(result)).appendTo('#bottom');
-      	/*console.log($.parseHTML(result));
-        outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
+      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+      	console.log(imgsrc);
+      	$("#bottom").append('<img src="' + imgsrc + '">');
+        /*outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
 
       });
     };
