@@ -124,11 +124,10 @@ textarea {
   $( document ).ready(function() {
     for(var n = 0; n < comics.length; n++){
     	doCORSRequest({
-        method: 'GET',
-        url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
-      }, printGoComics(result)
-      });
-    }
+        	method: 'GET',
+        	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
+      		}, printGoComics(result) );
+    });
   });
 </script>
 </body>
