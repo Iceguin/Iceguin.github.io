@@ -87,7 +87,7 @@ html, body {
     for(var n = 0; n < comics.length; n++){
     	var today = new Date();
     	var thisYear = today.getFullYear();
-    	var thisMonth = today.getMonth();
+    	var thisMonth = String(today.getMonth()+1);
     	var thisDay = today.getDate();
     	if(thisMonth.length < 2){ thisMonth = '0' + thisMonth }
     	console.log('https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay);
