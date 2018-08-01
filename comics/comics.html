@@ -107,8 +107,9 @@ textarea {
         url: urlField.value
       }, function printResult(result) {
       	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+      	var comictitle = $('h2.media-heading', $.parseHTML(result));
       	console.log(imgsrc);
-      	$("#bottom").append('<img src="' + imgsrc + '">');
+      	$("#bottom").append('<table style="display: inline-block"><tr><td style="text-align:left;"><b>'+comictitle+'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
         /*outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
 
       });
@@ -116,13 +117,15 @@ textarea {
   })();
   $( document ).ready(function() {
     for(var n = 0; n < comics.length; n++){
+    	console.log('https://www.gocomics.com/' + comics[n] + '/2018/07/31');
     	doCORSRequest({
         	method: 'GET',
         	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
       		}, function printGoComics(result) {
 		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+		      	var comictitle = $('h2.media-heading', $.parseHTML(result));
 		      	console.log(imgsrc);
-		      	$("#bottom").append('<img src="' + imgsrc + '">');
+		      	$("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+comictitle+'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
 		    }
     	);
     }
