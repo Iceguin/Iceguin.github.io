@@ -97,13 +97,6 @@ textarea {
     x.send(options.data);
   }
 
-  function printGoComics(result) {
-      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
-      	console.log(imgsrc);
-      	$("#bottom").append('<img src="' + imgsrc + '">');
-        /*outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
-    }
-
   // Bind event
   (function() {
     var urlField = document.getElementById('url');
@@ -126,7 +119,12 @@ textarea {
     	doCORSRequest({
         	method: 'GET',
         	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
-      		}, printGoComics(result) );
+      		}, function printGoComics(result) {
+		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+		      	console.log(imgsrc);
+		      	$("#bottom").append('<img src="' + imgsrc + '">');
+		    }
+    	);
     }
   });
 </script>
