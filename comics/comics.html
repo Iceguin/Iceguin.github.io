@@ -85,7 +85,12 @@ html, body {
 
   $( document ).ready(function() {
     for(var n = 0; n < comics.length; n++){
-    	console.log('https://www.gocomics.com/' + comics[n] + '/2018/07/31');
+    	var today = new Date();
+    	var thisYear = today.getFullYear();
+    	var thisMonth = today.getMonth();
+    	var thisDay = today.getDate();
+    	if(thisMonth.length < 2){ thisMonth = '0' + thisMonth }
+    	console.log('https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay);
     	doCORSRequest({
         	method: 'GET',
         	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
