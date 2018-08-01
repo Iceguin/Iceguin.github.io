@@ -56,7 +56,6 @@ textarea {
   </label>
 </div>
 <div id="bottom">
-  <textarea id="output"></textarea>
 </div>
 
 <script>
@@ -108,7 +107,7 @@ textarea {
         method: 'GET',
         url: urlField.value
       }, function printResult(result) {
-      	console.log($('.comic__image img', $.parseHTML(result)).'dataset')
+      	$('.comic__image img', $.parseHTML(result)).appendTo('#bottom');
       	/*console.log($.parseHTML(result));
         outputField.value = $.parseHTML( result ).find('h2.media-heading');*/
 
