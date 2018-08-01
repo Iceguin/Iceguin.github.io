@@ -84,16 +84,19 @@ html, body {
   })();*/
 
   $( document ).ready(function() {
+  	var today = new Date();
+    var thisYear = today.getFullYear();
+    var thisMonth = String(today.getMonth()+1);
+    var thisDay = String(today.getDate());
+    if(thisMonth.length < 2){ thisMonth = '0' + thisMonth };
+    if(thisDay.length < 2){ thisDay = '0' + thisDay };
+
     for(var n = 0; n < comics.length; n++){
-    	var today = new Date();
-    	var thisYear = today.getFullYear();
-    	var thisMonth = String(today.getMonth()+1);
-    	var thisDay = today.getDate();
-    	if(thisMonth.length < 2){ thisMonth = '0' + thisMonth }
-    	console.log('https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay);
+    	var comicpath = 'https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay
+    	console.log(comicpath);
     	doCORSRequest({
         	method: 'GET',
-        	url: 'https://www.gocomics.com/' + comics[n] + '/2018/07/31'
+        	url: comicpath
       		}, function printGoComics(result) {
 		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
 		      	var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
