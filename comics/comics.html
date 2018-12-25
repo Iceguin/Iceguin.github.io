@@ -100,20 +100,31 @@ html, body {
     if(thisMonth.length < 2){ thisMonth = '0' + thisMonth };
     if(thisDay.length < 2){ thisDay = '0' + thisDay };
 
+    /* get all comics available on gocomics */
     for(var n = 0; n < comics.length; n++){
     	var comicpath = 'https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay
-    	console.log(comicpath);
     	doCORSRequest({
         	method: 'GET',
         	url: comicpath
       		}, function printGoComics(result) {
 		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
 		      	var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
-		      	console.log(comictitle);
 		      	$("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+comictitle+'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
 		    }
     	);
     }
+
+    /* get Dilbert */
+    var dil_comicpath = 'https://dilbert.com/strip/' + thisYear + '-' + thisMonth + '-' + thisDay
+    doCORSRequest({
+          method: 'GET',
+          url: dil_comicpath
+          }, function printGoComics(dil_result) {
+            var dil_imgsrc = $('.img-comic', $.parseHTML(dil_result)).attr('src');
+            console.log(dil_imgsrc);
+            $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ 'Dilbert' +'</b></td></tr><tr><td><img src="https:' + dil_imgsrc + '"></td></tr></table>');
+        }
+      );
   });
 </script>
 </body>
