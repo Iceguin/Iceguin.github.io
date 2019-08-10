@@ -173,6 +173,7 @@
       inset 0 4px 5px rgba(255,255,255,0.1),
       inset 0 -4px 5px rgba(0,0,0,0.3),
       0 1px 1px rgba(255,255,255,0.3);
+    z-index: 0;
   }
 
   /* Book Spine */
@@ -195,6 +196,7 @@
       inset 0 4px 5px rgba(255,255,255,0.1),
       inset 0 -4px 5px rgba(0,0,0,0.3),
       0 1px 1px rgba(255,255,255,0.3);
+    z-index: -3;
   }
   #book #index { 
     position: absolute; 
@@ -284,15 +286,19 @@
   }
   #book .page.left::before {
     left: -5px;
+    border-radius: 0px 3px 3px 0px;
   }
   #book .page.left::after {
     left: -10px;
+    border-radius: 0px 3px 3px 0px;
   }
   #book .page.right::before {
     right: -5px;
+    border-radius: 3px;
   }
   #book .page.right::after {
     right: -10px;
+    border-radius: 3px;
   }
   #book .page::after {
     top: 10px;
@@ -310,12 +316,12 @@
   #book .page.left { 
     left: 0px;
     width: 20%;
-    border-radius: 0px 5px 5px 0px;
+    border-radius: 0px 3px 3px 0px;
   }
   #book .page.right { 
     left: 20%;
     right: 20px;
-    border-radius: 5px 3px 3px 5px;
+    border-radius: 3px;
   }
 </style>
 
