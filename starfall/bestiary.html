@@ -21,6 +21,7 @@
     $('.beastName').text(BeastName);
 
     /* Description */
+    $('.beastContainer').css({ "top" : "10%", "bottom" : "10%", "left" : "10%", "right" : "10%" });
     if(BeastList[BeastName].Description){
       $('.beastDesc').html(BeastList[BeastName].Description);
       $('.beastDesc').css("display","block");
@@ -35,7 +36,7 @@
     /* Framed Image */
     $('.beastContainer .beastImg1').remove();
     if(BeastList[BeastName].ImageOne){
-      $('.beastContainer').append('<img src="'+BeastList[BeastName].ImageOne+'" class="beastImg1">')
+      $('.beastContainer').prepend('<img src="'+BeastList[BeastName].ImageOne+'" class="beastImg1">')
     }
 
     /* Semitransparent Image */
@@ -44,13 +45,21 @@
       var ImgStyle = "";
       console.log(BeastList[BeastName].ImagePosition.search("left"))
       if(BeastList[BeastName].ImagePosition.search("left") == -1) {
-        ImgStyle = ImgStyle.concat("right:0px;")}
+        ImgStyle = ImgStyle.concat("right:0px;");
+        if(BeastList[BeastName].ImagePosition.search("right") > -1){ $('.beastContainer').css("right", "30%"); }
+      }
       if(BeastList[BeastName].ImagePosition.search("right") == -1) {
-        ImgStyle = ImgStyle.concat("left:0px;")}
+        ImgStyle = ImgStyle.concat("left:0px;");
+        if(BeastList[BeastName].ImagePosition.search("left") > -1){ $('.beastContainer').css("left", "30%"); }
+      }
       if(BeastList[BeastName].ImagePosition.search("top") == -1) {
-        ImgStyle = ImgStyle.concat("bottom:0px;")}
+        ImgStyle = ImgStyle.concat("bottom:0px;");
+        if(BeastList[BeastName].ImagePosition.search("bottom") > -1){ $('.beastContainer').css("bottom", "30%"); }
+      }
       if(BeastList[BeastName].ImagePosition.search("bottom") == -1) {
-        ImgStyle = ImgStyle.concat("top:0px;")}
+        ImgStyle = ImgStyle.concat("top:0px;");
+        if(BeastList[BeastName].ImagePosition.search("top") > -1){ $('.beastContainer').css("top", "30%"); }
+      }
       if(BeastList[BeastName].ImagePosition.length > 6) {
         ImgStyle = ImgStyle.concat("max-width:60%;max-height:60%;")
       }else{
@@ -59,10 +68,47 @@
 
       $('#bestiary').append('<img src="'+BeastList[BeastName].ImageTwo+'" class="beastImg2" style="'+ ImgStyle +'">')
     }
+
+    /* Size Reference */
+    $('.sizeRef').text("");
+    if(BeastList[BeastName].SizePerc){
+      var humanHeight = 100;
+      var beastHeight = 100;
+      var humanImgPath = "https://i.imgur.com/HBocSF7.png"
+      var beastImgPath;
+
+      // Position size comparison around other images
+      if(BeastList[BeastName].ImageTwo && BeastList[BeastName].ImagePosition.search("bottom") > -1){
+        $('.sizeRef').css({"top": "50px", "bottom": "auto"});
+      }else{
+        $('.sizeRef').css({"bottom": "50px", "top": "auto"});
+      }
+      
+      if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImageOne){
+        $('.sizeRef').css({"right": "50px", "left": "auto"});
+      }else{
+        $('.sizeRef').css({"left": "50px", "right": "auto"});
+      }
+
+      // Set silhoettes
+      if(BeastList[BeastName].SizeImg){ 
+        beastImgPath = BeastList[BeastName].SizeImg 
+      }else{ 
+        beastImgPath = humanImgPath 
+      }
+
+      if(BeastList[BeastName].SizePerc <= 100) {
+        beastHeight = BeastList[BeastName].SizePerc
+      }else{
+        humanHeight = 10000.0/parseFloat(BeastList[BeastName].SizePerc);
+      }
+      $('.sizeRef').append("<b>Size Reference</b><br>");
+      $('.sizeRef').append("<table><tr><td><b>Adult Human</b></td><td><b>" + BeastName + "</b></td></tr><tr><td class='silhoetteWrap'><img src='" + humanImgPath + "' style='height: " + humanHeight + "%'></td><td class='silhoetteWrap'><img src='" + beastImgPath + "' style='height: " + beastHeight + "%'></td></tr></table>");
+    }
+    
   }
   
   $(document).ready(function(){
-      console.log(spData);
       var currBeast = ""
       for(var i in spData){
         if( spData[i].gs$cell.row > 1 ) { /* Row 1 is Column Headings */
@@ -79,30 +125,39 @@
               BeastList[currBeast].Type = spData[i].gs$cell.$t
             break;
             case 4:
-              BeastList[currBeast].SubTypes = spData[i].gs$cell.$t
+              BeastList[currBeast].MagicType = spData[i].gs$cell.$t
             break;
             case 5:
-              BeastList[currBeast].Difficulty = spData[i].gs$cell.$t
+              BeastList[currBeast].SubTypes = spData[i].gs$cell.$t
             break;
             case 6:
-              BeastList[currBeast].Environment = spData[i].gs$cell.$t
+              BeastList[currBeast].Difficulty = spData[i].gs$cell.$t
             break;
             case 7:
-              BeastList[currBeast].Description = spData[i].gs$cell.$t
+              BeastList[currBeast].Environment = spData[i].gs$cell.$t
             break;
             case 8:
-              BeastList[currBeast].Size = spData[i].gs$cell.$t
+              BeastList[currBeast].Description = spData[i].gs$cell.$t
             break;
             case 9:
-              BeastList[currBeast].ImageOne = spData[i].gs$cell.$t
+              BeastList[currBeast].SizeText = spData[i].gs$cell.$t
             break;
             case 10:
-              BeastList[currBeast].ImageTwo = spData[i].gs$cell.$t
+              BeastList[currBeast].SizePerc = spData[i].gs$cell.$t
             break;
             case 11:
-              BeastList[currBeast].ImagePosition = spData[i].gs$cell.$t
+              BeastList[currBeast].SizeImg = spData[i].gs$cell.$t
             break;
             case 12:
+              BeastList[currBeast].ImageOne = spData[i].gs$cell.$t
+            break;
+            case 13:
+              BeastList[currBeast].ImageTwo = spData[i].gs$cell.$t
+            break;
+            case 14:
+              BeastList[currBeast].ImagePosition = spData[i].gs$cell.$t
+            break;
+            case 15:
               BeastList[currBeast].Credit = spData[i].gs$cell.$t
             break;
           }
@@ -123,7 +178,9 @@
   div.lineclass {font-style: italic;}
   .title, .result {width: 80%;}
   .notes {width: 15%;}
-  h1 {text-align: center;}
+  h1 {
+    text-align: center; z-index: 1; 
+  }
 </style>
 <style type="text/css" media="print">
   form {display: none;}
@@ -145,24 +202,13 @@
     margin: 0px; font-size: 12px;
     background: #52352b url('https://i.imgur.com/2mKBpVb.png') repeat; 
   }
-	#bestiary_list {display:none;}
-	#book #bestiary {
-    position: absolute;
-    top: 0%;
-    bottom: 0%;
-    left: 0%;
-    right: 0%; 
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
+	
   /* Book leather cover */
   #book {
-    width: 80%; max-width: 1200px;
-    height: 80%; max-height: 800px;
+    width: 80%; max-width: 1200px; min-width: 800px;
+    height: 80%; max-height: 800px; min-height: 400px;
     margin-top: 5%;
-    position: relative;
+    position: absolute;
     text-align: left;
     background-color: #b05e2f;
     background-image: url('https://i.imgur.com/HpiYgtk.png');
@@ -198,13 +244,118 @@
       0 1px 1px rgba(255,255,255,0.3);
     z-index: -3;
   }
+
+  /* Book Inner Cover */
+  #book::after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    bottom: 10px;
+    right: 10px;
+    top: 10px;
+    background-color: #b39178;
+    background-image: url(https://i.imgur.com/YH2hlmA.png);
+    z-index: -3;
+  }
+
+  /* Book Pages */
+  #book .page {
+    position: absolute;
+    top: 5px; 
+    bottom: 25px;
+    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
+  }
+  #book .page::before, #book .page::after {
+    content: '';
+    display: block;
+    position: absolute;
+    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
+    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
+    width: 100%;
+    height: 100%;
+  }
+  #book .page::before {
+    top: 5px;
+    z-index: -1;
+  }
+  #book .page.left::before {
+    left: -5px;
+    border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
+  }
+  #book .page.left::after {
+    left: -10px;
+    border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
+  }
+  #book .page.right::before {
+    right: -5px;
+    border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
+  }
+  #book .page.right::after {
+    right: -10px;
+    border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
+  }
+  #book .page::after {
+    top: 10px;
+    z-index: -2;
+  }
+  #book .page h2 {
+    color: #34211a;
+    font-size: 1em;
+    text-align: center;
+    text-shadow: -1px -1px 0 rgba(0,0,0,0.1);
+    font-family: Alegreya SC, Georgia, serif;
+    margin: 0px;
+    margin-right: 25px;
+  }
+  #book .page.left { 
+    left: 0px;
+    width: 20%;
+    border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
+  }
+  #book .page.right { 
+    left: 20%;
+    right: 25px;
+    border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
+  }
+  #book #bestiary {
+    position: absolute;
+    top: 0%;
+    bottom: 0%;
+    left: 0%;
+    right: 0%; 
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    overflow: hidden;
+    /*border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;*/
+    border-radius: inherit;
+  }
   #book #index { 
     position: absolute; 
     top: 0%; 
     bottom: 0%; 
     left: 0%; 
     right: 0%; 
+    /*border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;*/
+    border-radius: inherit;
+    overflow: hidden;
   }
+
+  #bestiary_list {
+    display: none;
+  }
+  
+  
 
   #navbar { 
     position: absolute;
@@ -230,99 +381,52 @@
     border-top: 1px solid #8e493c;
   }
   #index .list .beastSelect:hover { background-color: white; }
+  #index h1 { margin-top: 20px; }
 
   h1 {
     color: #672307;
-    font: 50px / 40px Cardinal, Georgia, serif;
+    font: 50px / 50px Cardinal, Georgia, serif;
     margin: 0px; }
-  #bestiary .beastDesc { border: 1px solid #8e493c; margin-left: 10%; margin-right: 40%; padding: 15px; }
+  #bestiary .beastDesc { 
+    border: 1px solid #8e493c; padding: 15px; 
+  }
   #bestiary .beastContainer {
-    position: relative;
-    width: 70%; margin-left:15%;
+    position: absolute;
     max-height: 80%; min-height: 50%; 
+    z-index: 1;
   }
   #bestiary .beastImg1 {
-    position: absolute;
-    left: 0px; top:0px; bottom: 0px;
-    max-height: 100%; max-width: 100%;
-    padding: 15px 15px;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(34, 25, 25, 0.4);
-  -moz-box-shadow: 0 1px 2px rgba(34,25,25,0.4);
-  -webkit-box-shadow: 0 1px 3px rgba(34, 25, 25, 0.4);
+    max-height: 100%;
+    max-width: 40%;
+    padding: 5px;
+    margin-right: 10px;
+    float: left;
+    border: 2px solid #672307;
   }
-  #bestiary .beastImg1:before { content:''; background-color:black;position:absolute;display:block;top:0px;bottom:0px;left:0px;right:0px; }
-  #bestiary .beastImg2 { position: absolute; }
+  #bestiary .beastImg2 { 
+    position: absolute; 
+    z-index: 0;
+  }
   #bestiary .credits { 
     color: #672307;
     font: 10px arial, sans-serif;text-align:center; text-transform:uppercase;
     position:absolute; left:0px; right:0px; bottom:5px;
+    z-index: 2;
   }
-  #book .page {
+  #bestiary .sizeRef {
     position: absolute;
-    top: 20px; 
-    bottom: 20px;
-    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
-  }
-  #book .page::before, #book .page::after {
-    content: '';
-    display: block;
-    position: absolute;
-    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
-    width: 100%;
-    height: 100%;
-  }
-  #book .page::before {
-    top: 5px;
-    z-index: -1;
-  }
-  #book .page.left::before {
-    left: -5px;
-    border-radius: 0px 3px 3px 0px;
-  }
-  #book .page.left::after {
-    left: -10px;
-    border-radius: 0px 3px 3px 0px;
-  }
-  #book .page.right::before {
-    right: -5px;
-    border-radius: 3px;
-  }
-  #book .page.right::after {
-    right: -10px;
-    border-radius: 3px;
-  }
-  #book .page::after {
-    top: 10px;
-    z-index: -2;
-  }
-  #book .page h2 {
-    color: #34211a;
-    font-size: 1em;
     text-align: center;
-    text-shadow: -1px -1px 0 rgba(0,0,0,0.1);
-    font-family: Alegreya SC, Georgia, serif;
-    margin: 0px;
-    margin-right: 25px;
+    z-index: 1;
   }
-  #book .page.left { 
-    left: 0px;
-    width: 20%;
-    border-radius: 0px 3px 3px 0px;
+  #bestiary .sizeRef td {
+    border: none;
+    text-align: center;
   }
-  #book .page.right { 
-    left: 20%;
-    right: 20px;
-    border-radius: 3px;
+  #bestiary .sizeRef td.silhoetteWrap {
+    height: 100px;
+    vertical-align: bottom;
   }
+  
 </style>
 
 <html>
@@ -334,16 +438,17 @@
     <div class="left page">
       <div id="index">
         <h1>Bestiary</h1>
-        <h2>of magic-touched beings in Salem and the Known World</h2>
+        <h2>of magic-touched beings in Salem & the Known World</h2>
         <div class="list"></div>
       </div>
     </div>
     <div class="right page">
       <div id="bestiary">
-        <h1 class="beastName">Beast Name</h1>
         <div class="beastContainer">
+          <h1 class="beastName">Beast Name</h1>
           <div class="beastDesc">A long description of the creature goes here</div>
        </div>
+       <div class="sizeRef"></div>
         <div class="credits">Image and text credits</div>
       </div>
     </div>
