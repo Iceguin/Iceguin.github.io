@@ -21,11 +21,11 @@
     $('.beastName').text(BeastName);
 
     /* Description */
-    $('.beastContainer').css({ "top" : "10%", "bottom" : "10%", "left" : "10%", "right" : "10%" });
+    $('.beastContainer').css({ "top" : "10%", "bottom" : "10%", "left" : "5%", "right" : "5%" });
     if(BeastList[BeastName].Description){
       $('.beastDesc').html(BeastList[BeastName].Description);
-      $('.beastDesc').css("display","block");
-    }else{ $('.beastDesc').css("display","none")}
+    }else{ $('.beastDesc').html("")}
+    $('.bufferSpace').css({ "height" : "1px" });
 
     /* Credits */
     if(BeastList[BeastName].Credit){
@@ -43,22 +43,29 @@
     $('#bestiary .beastImg2').remove();
     if(BeastList[BeastName].ImageTwo){
       var ImgStyle = "";
-      console.log(BeastList[BeastName].ImagePosition.search("left"))
       if(BeastList[BeastName].ImagePosition.search("left") == -1) {
         ImgStyle = ImgStyle.concat("right:0px;");
-        if(BeastList[BeastName].ImagePosition.search("right") > -1){ $('.beastContainer').css("right", "30%"); }
+        if(BeastList[BeastName].ImagePosition.search("right") > -1){
+          $('.beastContainer').css("right", "30%");
+        }
       }
       if(BeastList[BeastName].ImagePosition.search("right") == -1) {
         ImgStyle = ImgStyle.concat("left:0px;");
-        if(BeastList[BeastName].ImagePosition.search("left") > -1){ $('.beastContainer').css("left", "30%"); }
+        if(BeastList[BeastName].ImagePosition.search("left") > -1){ 
+          $('.beastContainer').css("left", "30%"); 
+        }
       }
       if(BeastList[BeastName].ImagePosition.search("top") == -1) {
         ImgStyle = ImgStyle.concat("bottom:0px;");
-        if(BeastList[BeastName].ImagePosition.search("bottom") > -1){ $('.beastContainer').css("bottom", "30%"); }
+        if(BeastList[BeastName].ImagePosition.search("bottom") > -1){ 
+          $('.beastContainer').css("bottom", "30%"); 
+        }
       }
       if(BeastList[BeastName].ImagePosition.search("bottom") == -1) {
         ImgStyle = ImgStyle.concat("top:0px;");
-        if(BeastList[BeastName].ImagePosition.search("top") > -1){ $('.beastContainer').css("top", "30%"); }
+        if(BeastList[BeastName].ImagePosition == "top"){ 
+          $('.beastContainer').css("top", "30%"); 
+        }
       }
       if(BeastList[BeastName].ImagePosition.length > 6) {
         ImgStyle = ImgStyle.concat("max-width:60%;max-height:60%;")
@@ -69,26 +76,59 @@
       $('#bestiary').append('<img src="'+BeastList[BeastName].ImageTwo+'" class="beastImg2" style="'+ ImgStyle +'">')
     }
 
+    /* Sidebar Info Position */
+    // Position size comparison around other images
+    var isBufferNeeded = true;
+    if(BeastList[BeastName].ImageTwo && BeastList[BeastName].ImagePosition.search("bottom") > -1){
+      $('.info').css({"top": "30px", "bottom": "auto"});
+      isBufferNeeded = false;
+    }else{
+      $('.info').css({"bottom": "30px", "top": "auto"});
+    }
+      
+    if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImageOne){
+      $('.info').css({"right": "30px", "left": "auto"});
+    }else{
+      $('.info').css({"left": "30px", "right": "auto"});
+    }
+
+    if(BeastList[BeastName].ImageTwo && (BeastList[BeastName].ImagePosition.search("bottom") > -1 || BeastList[BeastName].ImagePosition == "right" )){
+      $('.summaryInfo,.sizeRef').css({"display" : "block"})
+      isBufferNeeded = false;
+    }else{
+      $('.summaryInfo,.sizeRef').css({"display" : "inline-block"})
+    }
+
+    if (isBufferNeeded) { $('.bufferSpace').css({ "height" : "120px" }); }
+
+    /* Sidebar Info */
+    var summaryTable = "<b>Summary</b><br><table>";
+    var summaryTable = summaryTable + "<tr><td><b>Classification</b></td><td>" + BeastList[BeastName].Type + "</td></tr>"
+    if(BeastList[BeastName].Environment){
+      if(BeastList[BeastName].Environment.search(", ") > -1){
+        var env = BeastList[BeastName].Environment.substring(BeastList[BeastName].Environment.search(", ")+2)
+      }else{
+        var env = BeastList[BeastName].Environment
+      }
+      var summaryTable = summaryTable + "<tr><td><b>Environment</b></td><td>" + env + "</td></tr>"
+    }
+    var summaryTable = summaryTable + "<tr><td><b>Magic</b></td><td>" + ((BeastList[BeastName].MagicType) ? BeastList[BeastName].MagicType : "None") + "</td></tr>"
+    var summaryTable = summaryTable + "<tr><td><b>Difficulty</b></td><td>" + ((BeastList[BeastName].Difficulty) ? BeastList[BeastName].Difficulty : "N/a") + "</td></tr>"
+    if(BeastList[BeastName].Environment){
+      var summaryTable = summaryTable + "<tr><td><b>Rarity</b></td><td>" + BeastList[BeastName].Rarity + "</td></tr>"
+    }
+    summaryTable = summaryTable + "</table>"
+    $('.summaryInfo').html(summaryTable);
+
+
     /* Size Reference */
+    // Clear all info from previous selection
     $('.sizeRef').text("");
     if(BeastList[BeastName].SizePerc){
       var humanHeight = 100;
       var beastHeight = 100;
       var humanImgPath = "https://i.imgur.com/HBocSF7.png"
       var beastImgPath;
-
-      // Position size comparison around other images
-      if(BeastList[BeastName].ImageTwo && BeastList[BeastName].ImagePosition.search("bottom") > -1){
-        $('.sizeRef').css({"top": "50px", "bottom": "auto"});
-      }else{
-        $('.sizeRef').css({"bottom": "50px", "top": "auto"});
-      }
-      
-      if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImageOne){
-        $('.sizeRef').css({"right": "50px", "left": "auto"});
-      }else{
-        $('.sizeRef').css({"left": "50px", "right": "auto"});
-      }
 
       // Set silhoettes
       if(BeastList[BeastName].SizeImg){ 
@@ -128,19 +168,19 @@
               BeastList[currBeast].MagicType = spData[i].gs$cell.$t
             break;
             case 5:
-              BeastList[currBeast].SubTypes = spData[i].gs$cell.$t
+              BeastList[currBeast].Rarity = spData[i].gs$cell.$t
             break;
             case 6:
-              BeastList[currBeast].Difficulty = spData[i].gs$cell.$t
+              BeastList[currBeast].SubTypes = spData[i].gs$cell.$t
             break;
             case 7:
-              BeastList[currBeast].Environment = spData[i].gs$cell.$t
+              BeastList[currBeast].Difficulty = spData[i].gs$cell.$t
             break;
             case 8:
-              BeastList[currBeast].Description = spData[i].gs$cell.$t
+              BeastList[currBeast].Environment = spData[i].gs$cell.$t
             break;
             case 9:
-              BeastList[currBeast].SizeText = spData[i].gs$cell.$t
+              BeastList[currBeast].Description = spData[i].gs$cell.$t
             break;
             case 10:
               BeastList[currBeast].SizePerc = spData[i].gs$cell.$t
@@ -205,7 +245,7 @@
 	
   /* Book leather cover */
   #book {
-    width: 80%; max-width: 1200px; min-width: 800px;
+    width: 80%; max-width: 1200px; min-width: 1000px;
     height: 80%; max-height: 800px; min-height: 400px;
     margin-top: 5%;
     position: absolute;
@@ -387,21 +427,49 @@
     color: #672307;
     font: 50px / 50px Cardinal, Georgia, serif;
     margin: 0px; }
+  td.beastName {
+    color: #672307;
+    font: 50px / 30px Cardinal, Georgia, serif;
+    margin: 0px;
+    text-align: center;
+  }
   #bestiary .beastDesc { 
-    border: 1px solid #8e493c; padding: 15px; 
+    /*border: 1px solid #8e493c;*/
+    padding: 15px; 
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  #bestiary .bufferspace {
+    padding: 0px;
+  }
+  ::-webkit-scrollbar {
+    width: 2px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    width: 100%;
+    height: 20px;
+    background-color: #672307;
   }
   #bestiary .beastContainer {
     position: absolute;
-    max-height: 80%; min-height: 50%; 
     z-index: 1;
   }
+  #bestiary .beastContainer table {
+    width: auto;
+    height: 100%;
+  }
+  #bestiary .beastContainer td { border: none; }
   #bestiary .beastImg1 {
     max-height: 100%;
-    max-width: 40%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 5px;
     margin-right: 10px;
-    float: left;
     border: 2px solid #672307;
+    float: left;
   }
   #bestiary .beastImg2 { 
     position: absolute; 
@@ -413,10 +481,13 @@
     position:absolute; left:0px; right:0px; bottom:5px;
     z-index: 2;
   }
-  #bestiary .sizeRef {
+  #bestiary .info {
     position: absolute;
-    text-align: center;
     z-index: 1;
+  }
+  #bestiary .sizeRef {
+    text-align: center;
+    vertical-align: middle;
   }
   #bestiary .sizeRef td {
     border: none;
@@ -425,6 +496,16 @@
   #bestiary .sizeRef td.silhoetteWrap {
     height: 100px;
     vertical-align: bottom;
+  }
+
+  #bestiary .summaryInfo{
+    text-align: center;
+    vertical-align: middle;
+  }
+  #bestiary .summaryInfo table td {
+    border: none;
+    border-bottom: 1px solid #672307;
+    text-align: left;
   }
   
 </style>
@@ -445,10 +526,25 @@
     <div class="right page">
       <div id="bestiary">
         <div class="beastContainer">
-          <h1 class="beastName">Beast Name</h1>
-          <div class="beastDesc">A long description of the creature goes here</div>
-       </div>
-       <div class="sizeRef"></div>
+          <table>
+            <tr style="height: 0px;">
+              <td class="beastName">
+                Beast Name
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="beastDesc">
+                  A long description of the creature goes here
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="bufferSpace"></td>
+            </tr>
+          </table>
+        </div>
+       <div class="info"><div class="summaryInfo"></div><div class="sizeRef"></div></div>
         <div class="credits">Image and text credits</div>
       </div>
     </div>
