@@ -15,10 +15,48 @@
     $('#index .list').append('<div class="beastSelect">' + BeastName + '</div>')
   }
 
+  function creatureFilter(){
+    var selectType = $('.filterType option:selected').text()
+    var selectEnv = $('.filterEnv option:selected').text()
+    var selectDiff = $('.filterDifficulty option:selected').text()
+    var selectRarity = $('.filterRarity option:selected').text()
+    var selectMisc = $('.filterMisc option:selected').text()
+
+    $('#index .list').text("");
+
+    for(var beast in BeastList){
+      if(beast.search("[*][*]") > -1){ continue; }
+      if((selectType.search("All") == -1 && selectType != "Other" && selectType != BeastList[beast].Type)
+        || (selectType == "Other" && ["Beast", "Plant", "Wraith", "Extraplanar"].includes(BeastList[beast].Type) ) ){
+        continue;
+      }
+      if( selectEnv.search("Any") == -1 && ( !BeastList[beast].Environment || BeastList[beast].Environment.search(selectEnv) == -1 )){
+        continue;
+      }
+      if( selectDiff.search("Any") == -1 && ( !BeastList[beast].Difficulty || BeastList[beast].Difficulty.search(selectDiff) == -1 )){
+        continue;
+      }
+      if( selectRarity.search("Any") == -1 && ( !BeastList[beast].Rarity || BeastList[beast].Rarity.search(selectRarity) == -1 )){
+        continue;
+      }
+      if( selectMisc.search("Misc.") == -1 && ( !BeastList[beast].SubTypes || BeastList[beast].SubTypes.search(selectMisc) == -1 )){
+        continue;
+      }
+      addBeast(beast);
+    }
+    $( "#index .list .beastSelect" ).click(function() {
+      fillBeast($( this ).text());
+    });
+  }
+
   function fillBeast(BeastName){
 
     /* Name */
     $('.beastName').text(BeastName);
+
+    if(BeastList[BeastName].ScienceName){
+      $('.beastName').append('<h2>' + BeastList[BeastName].ScienceName + '</h2>')
+    }
 
     /* Description */
     $('.beastContainer').css({ "top" : "10%", "bottom" : "10%", "left" : "5%", "right" : "5%" });
@@ -46,18 +84,18 @@
       if(BeastList[BeastName].ImagePosition.search("left") == -1) {
         ImgStyle = ImgStyle.concat("right:0px;");
         if(BeastList[BeastName].ImagePosition.search("right") > -1){
-          $('.beastContainer').css("right", "30%");
+          $('.beastContainer').css("right", "43%");
         }
       }
       if(BeastList[BeastName].ImagePosition.search("right") == -1) {
         ImgStyle = ImgStyle.concat("left:0px;");
         if(BeastList[BeastName].ImagePosition.search("left") > -1){ 
-          $('.beastContainer').css("left", "30%"); 
+          $('.beastContainer').css("left", "43%"); 
         }
       }
       if(BeastList[BeastName].ImagePosition.search("top") == -1) {
         ImgStyle = ImgStyle.concat("bottom:0px;");
-        if(BeastList[BeastName].ImagePosition.search("bottom") > -1){ 
+        if(BeastList[BeastName].ImagePosition == "bottom"){ 
           $('.beastContainer').css("bottom", "30%"); 
         }
       }
@@ -65,9 +103,10 @@
         ImgStyle = ImgStyle.concat("top:0px;");
         if(BeastList[BeastName].ImagePosition == "top"){ 
           $('.beastContainer').css("top", "30%"); 
+          $('.beastContainer').css("right", "43%"); 
         }
       }
-      if(BeastList[BeastName].ImagePosition.length > 6) {
+      if(BeastList[BeastName].ImagePosition && BeastList[BeastName].ImagePosition.length > 6) {
         ImgStyle = ImgStyle.concat("max-width:60%;max-height:60%;")
       }else{
         ImgStyle = ImgStyle.concat("max-width:100%;max-height:100%;")
@@ -86,23 +125,26 @@
       $('.info').css({"bottom": "30px", "top": "auto"});
     }
       
-    if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImageOne){
+    if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImagePosition == "top right" || BeastList[BeastName].ImagePosition == "bottom right" || BeastList[BeastName].ImageOne || BeastList[BeastName].ImagePosition == "top" ){
       $('.info').css({"right": "30px", "left": "auto"});
     }else{
       $('.info').css({"left": "30px", "right": "auto"});
     }
 
-    if(BeastList[BeastName].ImageTwo && (BeastList[BeastName].ImagePosition.search("bottom") > -1 || BeastList[BeastName].ImagePosition == "right" )){
+    if(BeastList[BeastName].ImageTwo && ((BeastList[BeastName].ImagePosition == "bottom" ) || BeastList[BeastName].ImagePosition == "top")){
       $('.summaryInfo,.sizeRef').css({"display" : "block"})
       isBufferNeeded = false;
     }else{
       $('.summaryInfo,.sizeRef').css({"display" : "inline-block"})
     }
-
+    console.log(BeastList[BeastName].ImagePosition && BeastList[BeastName].ImagePosition.length > 6)
+    if(BeastList[BeastName].ImagePosition && BeastList[BeastName].ImagePosition.length > 6) { 
+      isBufferNeeded = false 
+    }
     if (isBufferNeeded) { $('.bufferSpace').css({ "height" : "120px" }); }
 
     /* Sidebar Info */
-    var summaryTable = "<b>Summary</b><br><table>";
+    var summaryTable = "<h2>Summary</h2><table style='margin-bottom: 10px;'>";
     var summaryTable = summaryTable + "<tr><td><b>Classification</b></td><td>" + BeastList[BeastName].Type + "</td></tr>"
     if(BeastList[BeastName].Environment){
       if(BeastList[BeastName].Environment.search(", ") > -1){
@@ -114,7 +156,7 @@
     }
     var summaryTable = summaryTable + "<tr><td><b>Magic</b></td><td>" + ((BeastList[BeastName].MagicType) ? BeastList[BeastName].MagicType : "None") + "</td></tr>"
     var summaryTable = summaryTable + "<tr><td><b>Difficulty</b></td><td>" + ((BeastList[BeastName].Difficulty) ? BeastList[BeastName].Difficulty : "N/a") + "</td></tr>"
-    if(BeastList[BeastName].Environment){
+    if(BeastList[BeastName].Rarity){
       var summaryTable = summaryTable + "<tr><td><b>Rarity</b></td><td>" + BeastList[BeastName].Rarity + "</td></tr>"
     }
     summaryTable = summaryTable + "</table>"
@@ -142,7 +184,7 @@
       }else{
         humanHeight = 10000.0/parseFloat(BeastList[BeastName].SizePerc);
       }
-      $('.sizeRef').append("<b>Size Reference</b><br>");
+      $('.sizeRef').append("<h2>Size Reference</h2>");
       $('.sizeRef').append("<table><tr><td><b>Adult Human</b></td><td><b>" + BeastName + "</b></td></tr><tr><td class='silhoetteWrap'><img src='" + humanImgPath + "' style='height: " + humanHeight + "%'></td><td class='silhoetteWrap'><img src='" + beastImgPath + "' style='height: " + beastHeight + "%'></td></tr></table>");
     }
     
@@ -155,7 +197,6 @@
           switch( parseInt(spData[i].gs$cell.col) ) {
             case 1:
               currBeast = spData[i].gs$cell.$t
-              addBeast(currBeast);
               BeastList[currBeast] = {}
             break;
             case 2:
@@ -203,7 +244,8 @@
           }
         }
       }
-      fillBeast("Ghost");
+      creatureFilter();
+      fillBeast("Familiar");
       $( "#index .list .beastSelect" ).click(function() {
         fillBeast($( this ).text());
       });
@@ -234,13 +276,18 @@
     font-family: Cardinal;
     src: url(Fonts/Cardinal.ttf);
   }
+  @font-face {
+    /* Font by Nancy Lorenz */
+    font-family: "Hobbiton Brushhand";
+    src: url(Fonts/hobbitonbrushhand.ttf);
+  }
 
   html { height: 100%; }
 
   body {
     height: 100%;
     margin: 0px; font-size: 12px;
-    background: #52352b url('https://i.imgur.com/2mKBpVb.png') repeat; 
+    background: #52352b url('Resources/Melamine-wood-004.png') repeat; 
   }
 	
   /* Book leather cover */
@@ -250,15 +297,16 @@
     margin-top: 5%;
     position: absolute;
     text-align: left;
-    background-color: #b05e2f;
+    background-color: #672307;
     background-image: url('https://i.imgur.com/HpiYgtk.png');
     border-radius: 0px 3px 3px 0px;
 
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 0px;
     box-shadow: 
-      inset 0 4px 5px rgba(255,255,255,0.1),
+      inset 0 4px 5px rgba(0,0,0,0.1),
       inset 0 -4px 5px rgba(0,0,0,0.3),
-      0 1px 1px rgba(255,255,255,0.3);
+      inset 0 -2px 3px rgba(0,0,0,0.3),
+      0 5px 7px rgba(0,0,0,0.5);
     z-index: 0;
   }
 
@@ -268,20 +316,17 @@
     display: block;
     position: absolute;
     top: -1%;
-    width: 5%;
+    width: 6%;
     bottom: -1%;
     background-color: inherit;
     background-image: inherit;
-    left: 17.5%;
+    left: 17%;
     moz-border-radius: 50% / 1%;
     webkit-border-radius: 50% / 1%;
     border-radius: 50% / 1%;
 
-    border: 1px solid rgba(0,0,0,0.1);
-    box-shadow: 
-      inset 0 4px 5px rgba(255,255,255,0.1),
-      inset 0 -4px 5px rgba(0,0,0,0.3),
-      0 1px 1px rgba(255,255,255,0.3);
+    border: inherit;
+    box-shadow: inherit;
     z-index: -3;
   }
 
@@ -309,6 +354,9 @@
     background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
+
+    color: #080808;
+    font: 12px / 14px Caudex, serif;
   }
   #book .page::before, #book .page::after {
     content: '';
@@ -319,7 +367,7 @@
     background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
-    width: 100%;
+    /*width: 100%;*/
     height: 100%;
   }
   #book .page::before {
@@ -328,18 +376,22 @@
   }
   #book .page.left::before {
     left: -5px;
+    right: 0px;
     border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
   }
   #book .page.left::after {
     left: -10px;
+    right: 0px;
     border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
   }
   #book .page.right::before {
     right: -5px;
+    left: 0px;
     border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
   }
   #book .page.right::after {
     right: -10px;
+    left: 0px;
     border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
   }
   #book .page::after {
@@ -348,12 +400,13 @@
   }
   #book .page h2 {
     color: #34211a;
-    font-size: 1em;
+    font: bold 12px / 12px Alegreya SC, Georgia, serif;
     text-align: center;
     text-shadow: -1px -1px 0 rgba(0,0,0,0.1);
-    font-family: Alegreya SC, Georgia, serif;
     margin: 0px;
-    margin-right: 25px;
+  }
+  #book #index h2 {
+    margin-bottom: 15px;
   }
   #book .page.left { 
     left: 0px;
@@ -377,7 +430,6 @@
     justify-content: center;
 
     overflow: hidden;
-    /*border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;*/
     border-radius: inherit;
   }
   #book #index { 
@@ -386,7 +438,6 @@
     bottom: 0%; 
     left: 0%; 
     right: 0%; 
-    /*border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;*/
     border-radius: inherit;
     overflow: hidden;
   }
@@ -402,34 +453,66 @@
     left: 0px;
     top: 0px;
     width: 100%; 
-    background-color: #1a1a1a; 
+    background-color: rgba(0,0,0,0.6); 
     padding: 10px; 
     box-sizing: border-box;
   }
-  #navbar a { color:white; text-decoration: none; display: inline-block; padding: 5px 7px; border: 1px solid white; font-family: Calibri, arial, sans-serif; }
+  #navbar a { 
+    color:white; text-decoration: none; display: inline-block; padding: 5px 7px; border: 1px solid white; font-family: Calibri, arial, sans-serif; 
+  }
+  #book a { 
+    text-decoration: none;
+    color: #b10c27;
+    transition: all 0.5s ease;
+  }
+  #book a:hover {
+    color: #080808;
+  }
 
   #index .list { 
     position: absolute; 
-    left: 0px; right: 0px; bottom: 0px;
-    top: 100px;
-    overflow:auto; }
+    left: 15px; right: 15px; bottom: 0px;
+    top: 260px;
+    overflow:auto;
+    border-top: 2px solid #672307;
+  }
 
   #index .list .beastSelect {
-    width:100%; box-sizing:border-box; padding: 15px;
+    margin-left: 2px;
+    box-sizing:border-box; padding: 15px;
     text-align:center;
-    font: 14px / 14px Calibri, arial, sans-serif;
+    font-size: 14px;
+    line-height: 14px;
     border-top: 1px solid #8e493c;
+    text-shadow: -1px 1px 0px transparent;
+    transition: all 0.5s ease;
   }
-  #index .list .beastSelect:hover { background-color: white; }
-  #index h1 { margin-top: 20px; }
+  #index .list .beastSelect:first-of-type{
+    border-top: none;
+  }
+  #index .list .beastSelect:hover { 
+    color: #b10c27;
+    cursor: pointer;
+    /*text-shadow: -1px 1px 1px #fffbf6,
+      3px 5px 4px rgba(0,0,0,0.2),
+      -1px 5px 4px rgba(0,0,0,0.2),
+      3px 1px 4px rgba(0,0,0,0.2),
+      -1px 1px 4px rgba(0,0,0,0.2);*/
+  }
 
-  h1 {
+  #index h1 {
     color: #672307;
-    font: 50px / 50px Cardinal, Georgia, serif;
-    margin: 0px; }
+    font: 35px / 35px "Alegreya SC", Georgia, serif;
+    margin: 0px; 
+    margin-top: 15px;
+    border-bottom: 2px solid;
+    width: 90%;
+    margin-left: 5%;
+    letter-spacing: 2px;
+  }
   td.beastName {
     color: #672307;
-    font: 50px / 30px Cardinal, Georgia, serif;
+    font: 50px / 40px "Hobbiton Brushhand", Cardinal, Georgia, serif;
     margin: 0px;
     text-align: center;
   }
@@ -438,6 +521,14 @@
     padding: 15px; 
     max-height: 100%;
     overflow-y: auto;
+    text-shadow: 0px 0px 5px #fffbf6, 0px 0px 3px #fffbf6;
+  }
+  #bestiary .beastDesc:first-child:first-letter {
+    float: left;
+    font-size: 50px;
+    line-height: 40px;
+    padding-right: 8px;
+    padding-left: 3px;
   }
   #bestiary .bufferspace {
     padding: 0px;
@@ -468,7 +559,7 @@
     box-sizing: border-box;
     padding: 5px;
     margin-right: 10px;
-    border: 2px solid #672307;
+    border: 20px solid #4d3f39;
     float: left;
   }
   #bestiary .beastImg2 { 
@@ -507,8 +598,52 @@
     border-bottom: 1px solid #672307;
     text-align: left;
   }
+
+  .select-css {
+    display: block;
+    line-height: 1.3;
+    padding: .6em 1.4em .5em .8em;
+    width: 80%;
+    box-sizing: border-box;
+    margin: 0;
+    margin-left: 10%;
+    margin-bottom: 3px;
+    border: 1px solid #aaa;
+    box-shadow: 0 1px 0 1px rgba(0,0,0,.04);
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    /*background-color: #fff;*/
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23672307%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'),
+      linear-gradient(to bottom, #fffbf6 0%,#e1ddd8 100%);
+    background-repeat: no-repeat, repeat;
+    background-position: right .7em top 50%, 0 0;
+    background-size: .65em auto, 100%;
+    border-radius: 0px;
+    color: #34211a;
+    font: 12px / 12px Alegreya SC, Georgia, serif;
+    text-shadow: -1px -1px 0 rgba(0,0,0,0.1);
+  }
+  .select-css::-ms-expand {
+    display: none;
+  }
+  .select-css:hover {
+    border-color: #888;
+  }
+  .select-css:focus {
+    border-color: #aaa;
+    /*box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
+    box-shadow: 0 0 0 3px -moz-mac-focusring;*/
+    color: #222;
+    outline: none;
+  }
+  .select-css option {
+    font-weight:normal;
+  }
   
 </style>
+
+<link href="https://fonts.googleapis.com/css?family=Alice|Almendra|Caudex:400,700|Enriqueta|Kameron|Lustria|PT+Serif|Vollkorn|Zilla+Slab&display=swap" rel="stylesheet">
 
 <html>
 <body>
@@ -519,7 +654,52 @@
     <div class="left page">
       <div id="index">
         <h1>Bestiary</h1>
-        <h2>of magic-touched beings in Salem & the Known World</h2>
+        <h2>of magic-touched beings in Salem<br/>& the Known World</h2>
+        <div class="filters">
+
+          <select class="filterType select-css" onchange="creatureFilter()">
+            <option>All Creature Types</option>
+            <option>Beast</option> 
+            <option>Plant</option>
+            <option>Extraplanar</option>
+            <option>Wraith</option>
+            <option>Other</option>
+          </select>
+
+          <select class="filterEnv select-css" onchange="creatureFilter()">
+            <option>Any Environment</option>
+            <option>Central Flatlands</option>
+            <option>Western Riverlands</option>
+            <option>South Hillocks</option>
+            <option>Northern Wilds</option>
+          </select>
+
+          <select class="filterDifficulty select-css" onchange="creatureFilter()">
+            <option>Any Difficulty</option>
+            <option>Flegling</option>
+            <option>Apprentice</option>
+            <option>Novice</option>
+            <option>Adept</option>
+            <option>Acolyte</option>
+            <option>Master</option>
+            <option>Legendary</option>
+          </select>
+
+          <select class="filterRarity select-css" onchange="creatureFilter()">
+            <option>Any Rarity</option>
+            <option>Rampant</option>
+            <option>Common</option>
+            <option>Uncommon</option>
+            <option>Rare</option>
+            <option>Legendary</option>
+          </select>
+
+          <select class="filterMisc select-css" onchange="creatureFilter()">
+            <option>Misc. Filters</option>
+            <option>Domesticatable</option>
+          </select>
+
+        </div>
         <div class="list"></div>
       </div>
     </div>
