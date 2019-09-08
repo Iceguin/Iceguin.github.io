@@ -11,6 +11,10 @@
       spData = json.feed.entry;
   }
 
+  function toggleCredits(){
+    $('.creditDisplay').toggle();
+  }
+
   function addBeast(BeastName){
     $('#index .list').append('<a class="beastSelect" href="#' + BeastName.replace(" ","%20") + '">' + BeastName + '</a>')
   }
@@ -386,10 +390,7 @@
   }
 
   /* Book Pages */
-  #book .page {
-    position: absolute;
-    top: 5px; 
-    bottom: 25px;
+  .creditPage, #book .page {
     background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
     background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
@@ -398,6 +399,11 @@
 
     color: #080808;
     font: 13px / 16px Caudex, Georgia, Times New Roman, Times, serif;
+  }
+  #book .page {
+    position: absolute;
+    top: 5px; 
+    bottom: 25px;
   }
   #book .page::before, #book .page::after {
     content: '';
@@ -690,6 +696,26 @@
   .select-css option {
     font-weight:normal;
   }
+
+  .creditDisplay{
+    background-color: rgba(0,0,0,0.6);
+    position: absolute; 
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .creditPage {
+    border-radius: 3px;
+    padding: 10px;
+  }
+  .creditButton {
+    cursor: pointer;
+  }
   
 </style>
 
@@ -699,7 +725,22 @@
 <body>
 	<div id="navbar">
 		<a href="http://star-fall.boards.net/">&lt; STARFALL HOME</a>
+    <a class="creditButton" onclick="toggleCredits()">©</a>
 	</div>
+  <div class="creditDisplay" onclick="toggleCredits()" style="display: none;">
+    <div class="creditPage">
+      <b>Credits</b>
+      <ul><li>Wood pattern from <a href="https://www.pixeden.com/graphic-web-backgrounds/wood-pattern-background">Pixeden</a></li>
+      <li>Semitransparent patterns from <a href="https://www.transparenttextures.com/">Transparent Textures</a></li>
+      <li>Silhouette images from <a href="https://www.silhouette.pics/index.php">Silhouette.pics</a></li>
+      <li>Large images on each page are credited on the bottom of that page</li>
+      <li>Smaller illustrations in place of size comparison are in public domain, from
+        <br/><a href="https://www.flickr.com/photos/internetarchivebookimages/">Internet Archive Book Images</a>,
+        <br/><a href="https://www.flickr.com/photos/biodivlibrary/">Biodiversity Heratige Library</a>,
+        <br/>and/or <a href="https://www.flickr.com/photos/britishlibrary/">The British Library</a></li>
+      <li>Code by Iceguin</li>
+    </div>
+  </div>
   <div id="book">
     <div class="left page">
       <div id="index">
