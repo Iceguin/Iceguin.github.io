@@ -4,15 +4,20 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 
 <script type="text/javascript">
-  var spData = null;
-  var BeastList = {}
+  var affData = null;
+  var elemData = null;
+  var spellList = {}
 
-  function doData(json) {
-      spData = json.feed.entry;
+  function affinityData(json) {
+      affData = json.feed.entry;
+  }
+
+  function elementData(json) {
+      elemData = json.feed.entry;
   }
 
   function addBeast(BeastName){
-    $('#index .list').append('<a class="beastSelect" href="#' + BeastName.replace(" ","%20") + '">' + BeastName + '</a>')
+    $('#index .list').append('<div class="beastSelect">' + BeastName + '</div>')
   }
 
   function creatureFilter(){
@@ -181,10 +186,8 @@
     if(BeastList[BeastName].Rarity){
       var summaryTable = summaryTable + "<tr><td><b>Rarity</b></td><td>" + BeastList[BeastName].Rarity + "</td></tr>"
     }
-    if(BeastList[BeastName].SubTypes
-      && (BeastList[BeastName].SubTypes.search("Companion") > -1
-      || BeastList[BeastName].SubTypes.search("Symbiotic") > -1)){
-      var summaryTable = summaryTable + "<tr><td><b>Other</b></td><td>" + BeastList[BeastName].SubTypes + "</td></tr>"
+    if(BeastList[BeastName].SubTypes && BeastList[BeastName].SubTypes.search("Companion") > -1){
+      var summaryTable = summaryTable + "<tr><td><b>Other</b></td><td>" + "Companion" + "</td></tr>"
     }
     summaryTable = summaryTable + "</table>"
     if(BeastName == "**Bestiary Overview"){
@@ -229,70 +232,93 @@
   }
   
   $(document).ready(function(){
-      var currBeast = ""
-      for(var i in spData){
-        if( spData[i].gs$cell.row > 1 ) { /* Row 1 is Column Headings */
-          switch( parseInt(spData[i].gs$cell.col) ) {
-            case 1:
-              currBeast = spData[i].gs$cell.$t
-              BeastList[currBeast] = {}
-            break;
-            case 2:
-              BeastList[currBeast].ScienceName = spData[i].gs$cell.$t
-            break;
-            case 3:
-              BeastList[currBeast].Type = spData[i].gs$cell.$t
-            break;
-            case 4:
-              BeastList[currBeast].MagicType = spData[i].gs$cell.$t
-            break;
-            case 5:
-              BeastList[currBeast].Rarity = spData[i].gs$cell.$t
-            break;
-            case 6:
-              BeastList[currBeast].SubTypes = spData[i].gs$cell.$t
-            break;
-            case 7:
-              BeastList[currBeast].Difficulty = spData[i].gs$cell.$t
-            break;
-            case 8:
-              BeastList[currBeast].Environment = spData[i].gs$cell.$t
-            break;
-            case 9:
-              BeastList[currBeast].Description = spData[i].gs$cell.$t
-            break;
-            case 10:
-              BeastList[currBeast].SizePerc = spData[i].gs$cell.$t
-            break;
-            case 11:
-              BeastList[currBeast].SizeImg = spData[i].gs$cell.$t
-            break;
-            case 12:
-              BeastList[currBeast].ImageOne = spData[i].gs$cell.$t
-            break;
-            case 13:
-              BeastList[currBeast].ImageTwo = spData[i].gs$cell.$t
-            break;
-            case 14:
-              BeastList[currBeast].ImagePosition = spData[i].gs$cell.$t
-            break;
-            case 15:
-              BeastList[currBeast].Credit = spData[i].gs$cell.$t
-            break;
-          }
+      var currSpell = "";
+      var currCategory = "";
+      var spellKey = "";
+
+      // Loop through all affinities.
+      for(var i in affData){
+        switch( parseInt(affData[i].gs$cell.col) ) {
+          case 1:
+            // Save category -- first part of key.
+            currCategory = affData[i].gs$cell.$t
+          break;
+          case 2:
+            // skip row if blank name
+            if( ! affData[i].gs$cell.$t ) { continue; }
+            // Save spell -- second part of key.
+            currSpell = affData[i].gs$cell.$t;
+            spellKey = currSpell + ' (' + currCategory + ')';
+            spellList[spellKey] = {}
+            spellList[spellKey].Name = currSpell;
+            spellList[spellKey].Category = currCategory;
+            spellList[spellKey].Type = "Affinity Spell";
+          break;
+          case 3:
+            // Spell description.
+            spellList[spellKey].Description = affData[i].gs$cell.$t
+          break;
+          case 4:
+            // Requirements.
+            spellList[spellKey].Requirements = affData[i].gs$cell.$t
+          break;
+          case 5:
+            // Image URL.
+            spellList[spellKey].Icon = affData[i].gs$cell.$t
+          break;
+          case 6:
+            // Price range.
+            spellList[spellKey].Price = affData[i].gs$cell.$t
+          break;
+          case 7:
+            // Synthesis keywords
+            spellList[spellKey].Synthesis = affData[i].gs$cell.$t
+          break;
         }
       }
-      creatureFilter();
-      
-      var entryPath = window.location.href
-      if(entryPath.indexOf("#") > -1 && BeastList[entryPath.substring(entryPath.indexOf("#") + 1).replace("%20"," ")]){
-        fillBeast(entryPath.substring(entryPath.indexOf("#") + 1).replace("%20"," "));
-      }else{
-        fillBeast("**Bestiary Overview");
+      // loop through all elemental spells
+      for(var i in elemData){
+        switch( parseInt(elemData[i].gs$cell.col) ) {
+          case 1:
+            // Save category -- first part of key.
+            currCategory = elemData[i].gs$cell.$t
+          break;
+          case 2:
+            // skip row if blank name
+            if( ! elemData[i].gs$cell.$t ) { continue; }
+            // Save spell -- second part of key.\
+            currSpell = elemData[i].gs$cell.$t;
+            spellKey = currSpell + ' (' + currCategory + ')';
+            spellList[spellKey] = {}
+            spellList[spellKey].Name = currSpell;
+            spellList[spellKey].Category = currCategory;
+            spellList[spellKey].Type = "Technique";
+          break;
+          case 3:
+            // Spell description.
+            spellList[spellKey].Description = elemData[i].gs$cell.$t
+          break;
+          case 4:
+            // Requirements.
+            spellList[spellKey].Requirements = elemData[i].gs$cell.$t
+          break;
+          case 5:
+            // Image URL.
+            spellList[spellKey].Icon = elemData[i].gs$cell.$t
+          break;
+        }
       }
+
+      console.log(spellList)
+      //creatureFilter();
+      //fillBeast("**Bestiary Overview");
   });
   </script>   
-<script src="https://spreadsheets.google.com/feeds/cells/1frzydbUxPP8IsshA60zzUHn_PIxSNi6zlZ8zw3vsgM8/1/public/values?alt=json-in-script&callback=doData"></script>
+
+<script src="https://spreadsheets.google.com/feeds/cells/10HNbsyd8jYZ1Oc3LnAt5S22sYesQizX9f-UIhhT3lGU/3/public/values?alt=json-in-script&callback=affinityData"></script>
+
+<script src="https://spreadsheets.google.com/feeds/cells/10HNbsyd8jYZ1Oc3LnAt5S22sYesQizX9f-UIhhT3lGU/4/public/values?alt=json-in-script&callback=elementData"></script>
+
 <style type="text/css">
   table {border-collapse: collapse; width: 100%;}
   th, td {border: thin solid black; padding: 3px;}
@@ -439,14 +465,14 @@
     top: 10px;
     z-index: -2;
   }
-  #book .page h2, #book .beastDesc h1 {
+  h2 {
     color: #34211a;
     font: bold 12px / 12px Alegreya SC, Georgia, serif;
     text-align: center;
     text-shadow: -1px -1px 0 rgba(0,0,0,0.1);
     margin: 0px;
   }
-  #book #index h2 {
+  #index h2 {
     margin-bottom: 15px;
   }
   #book .page.left { 
@@ -459,26 +485,12 @@
     right: 25px;
     border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
   }
-  #book #bestiary {
-    position: absolute;
-    top: 0%;
-    bottom: 0%;
-    left: 0%;
-    right: 0%; 
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    overflow: hidden;
-    border-radius: inherit;
-  }
-  #book #index { 
+  #index { 
     position: absolute; 
-    top: 0%; 
+    top: 12%; 
     bottom: 0%; 
-    left: 0%; 
-    right: 0%; 
+    left: 5%; 
+    right: 70%; 
     border-radius: inherit;
     overflow: hidden;
   }
@@ -519,7 +531,6 @@
   }
 
   #index .list .beastSelect {
-    display: block;
     margin-left: 2px;
     box-sizing:border-box; padding: 15px;
     text-align:center;
@@ -528,7 +539,6 @@
     border-top: 1px solid #8e493c;
     text-shadow: -1px 1px 0px transparent;
     transition: all 0.5s ease;
-    color: #080808;
   }
   #index .list .beastSelect:first-of-type{
     border-top: none;
@@ -538,7 +548,7 @@
     cursor: pointer;
   }
 
-  #index h1 {
+  h1 {
     color: #672307;
     font: 35px / 35px "Alegreya SC", Georgia, serif;
     margin: 0px; 
@@ -649,6 +659,137 @@
     text-align: left;
   }
 
+  .c-main {
+    
+    height: 100vh;
+    animation: brighten 4s infinite;
+    opacity: 0.9;
+    padding-top: 80px;
+  }
+
+
+  .c-scroll {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+    
+  .c-scroll__link {
+    color: inherit;
+  }
+    
+  .c-scroll__paper {
+    background-color: #dac48b;
+    width: 900px;
+    height: 500px;
+    margin: 0 70px / 2;
+    position: relative;
+    z-index: 0;
+  }
+    
+  .c-scroll__holder {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+    
+  .c-scroll__roll {
+    background-color: #dac48b;
+    width: 63px;
+    position: relative;
+    height: 520px;
+    border-radius: 32px / 10px;
+    margin: 0 5px;
+    z-index: 1;
+    box-shadow: -10px 5px 20px rgba(0,0,0,0.4);
+  }
+      
+  .c-scroll__roll:before {
+    content: '';
+    left: 2px;
+    top: -7px;
+    position: absolute;
+    right: 2px;
+    height: 7px;
+    background-color: #4A2B11;
+    background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
+  }
+      
+  .c-scroll__roll:after {
+    content: '';
+    left: 2px;
+    bottom: -7px;
+    position: absolute;
+    right: 2px;
+    height: 7px;
+    background-color: #4A2B11;
+    background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
+  }
+    
+  .c-scroll__knob {
+    background-color: #CD9E53;
+    background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
+    box-shadow: inset 0 6px 32px rgba(74, 43, 17, 1);
+    border-radius: 30px/15px;
+    width: 70px;
+    position: relative;
+    height: calc(70px / 2.34);
+  }
+    
+  .c-scroll__content {
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+    
+  .c-scroll__text {
+    
+  }
+    
+  .c-scroll__heading {
+    text-align: center;
+  }
+    
+  .c-scroll__paragraph {
+    line-height: 1.3;
+  }
+
+  .c-scroll__knob--small {
+    position: absolute;
+    transform: scale(.5);
+  }
+
+  .c-scroll__knob--left {
+    top: -20px;
+  }
+
+  .c-scroll__knob--right {
+    bottom: -20px;
+  }
+
+  .c-scroll__holder--bottom {
+    margin-left: -20px;
+  }
+
+  .c-scroll__holder--top {
+    margin-right: -20px;
+  }
+
+  .c-scroll__paper {
+    background-image: url(https://i.imgur.com/YH2hlmA.png),linear-gradient(to right, #c19b5d 0%,#d9ba7e 3%,#ebd095 10%,#ebd095 89%,#e5c78b 91%,#8e662f 100%);
+    box-shadow: inset 0 0 32px #c19b5d;
+    clip-path: polygon(0 0, 8% 0.5%, 9% 4%, 10% 1%, 10.5% 3%, 11% 0.5%, 17% 0, 18% 2%, 19% 0.5%, 25% 0%, 25.5% 0.5%, 26% 0, 30% 0, 32.5% 2%, 33% 1%, 34% 1.5%, 35.5% 0.5%, 40% 0, 47% 0%, 47.5% 0.5%, 48% 0, 52% 0, 53% 1%, 54.5% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .c-scroll__roll {
+    background-image: url(https://i.imgur.com/YH2hlmA.png),linear-gradient(to right, #5f3d08, #EED89F 60%, #98743C);
+  }
+
   .select-css {
     display: block;
     line-height: 1.3;
@@ -700,83 +841,70 @@
 	<div id="navbar">
 		<a href="http://star-fall.boards.net/">&lt; STARFALL HOME</a>
 	</div>
-  <div id="book">
-    <div class="left page">
-      <div id="index">
-        <h1 onclick="fillBeast('**Bestiary Overview')">Bestiary</h1>
-        <h2>of magic-touched beings in Salem<br/>& Known Worlds Beyond</h2>
-        <div class="filters">
 
-          <select class="filterType select-css" onchange="creatureFilter()">
-            <option>All Creature Types</option>
-            <option>Beast</option> 
-            <option>Plant</option>
-            <option>Extraplanar</option>
-            <option>Wraith</option>
-            <option>Other</option>
-          </select>
-
-          <select class="filterEnv select-css" onchange="creatureFilter()">
-            <option>Any Environment</option>
-            <option>Central Flatlands</option>
-            <option>Western Riverlands</option>
-            <option>South Hillocks</option>
-            <option>Northern Wilds</option>
-          </select>
-
-          <select class="filterDifficulty select-css" onchange="creatureFilter()">
-            <option>Any Difficulty</option>
-            <option>Flegling</option>
-            <option>Apprentice</option>
-            <option>Novice</option>
-            <option>Adept</option>
-            <option>Acolyte</option>
-            <option>Master</option>
-            <option>Legendary</option>
-          </select>
-
-          <select class="filterRarity select-css" onchange="creatureFilter()">
-            <option>Any Rarity</option>
-            <option>Rampant</option>
-            <option>Common</option>
-            <option>Uncommon</option>
-            <option>Rare</option>
-            <option>Legendary</option>
-          </select>
-
-          <select class="filterMisc select-css" onchange="creatureFilter()">
-            <option>Misc. Filters</option>
-            <option>Companion</option>
-            <option>Symbiotic</option>
-          </select>
-
+  <div class="c-main">
+    <div class="l-scroll">
+      <div class="c-scroll">
+        <div class="c-scroll__holder c-scroll__holder--top">
+          <div class="c-scroll__knob">
+            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--left"></div>
+          </div>
+          <div class="c-scroll__roll c-scroll__roll--top"></div>
+          <div class="c-scroll__knob">
+            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--right"></div>
+          </div>
         </div>
-        <div class="list"></div>
-      </div>
-    </div>
-    <div class="right page">
-      <div id="bestiary">
-        <div class="beastContainer">
-          <table>
-            <tr style="height: 0px;">
-              <td class="beastName">
-                Beast Name
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="beastDesc">
-                  A long description of the creature goes here
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="bufferSpace"></td>
-            </tr>
-          </table>
+        <div class="c-scroll__paper">
+          <div class="c-scroll__content">
+
+            <h1 onclick="fillBeast('**Bestiary Overview')">Scroll of Scrolls</h1>
+            <div id="index">
+              <div class="filters">
+
+                <select class="filterType select-css" onchange="creatureFilter()">
+                  <option>All Magic Categories</option>
+                  <option>Affinity</option> 
+                  <option>Elemental</option>
+                </select>
+
+                <select class="filterEnv select-css" onchange="creatureFilter()">
+                  <option>All Magic Branches</option>
+                  <option>Generate this programaically pls</option>
+                </select>
+
+                <select class="filterDifficulty select-css" onchange="creatureFilter()">
+                  <option>All Levels</option>
+                  <option>Basic</option>
+                  <option>ADV - Advanced</option>
+                  <option>MAS - Masterful</option>
+                </select>
+
+                <select class="filterRarity select-css" onchange="creatureFilter()">
+                  <option>Prerequisites?</option>
+                  <option>Yes</option>
+                  <option>No</option>
+                </select>
+
+                <select class="filterMisc select-css" onchange="creatureFilter()">
+                  <option>Any Synergy Potential</option>
+                  <option>Generate this programaically pls</option>
+                </select>
+
+              </div>
+              <div class="list"></div>
+            </div>
+
+          </div>
         </div>
-       <div class="info"><div class="summaryInfo"></div><div class="sizeRef"></div></div>
-        <div class="credits">Image and text credits</div>
+        <div class="c-scroll__holder c-scroll__holder--bottom">
+          <div class="c-scroll__knob">
+            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--left"></div>
+          </div>
+          <div class="c-scroll__roll c-scroll__roll--bottom"></div>
+          <div class="c-scroll__knob">
+            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--right"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
