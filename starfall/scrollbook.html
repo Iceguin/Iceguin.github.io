@@ -16,219 +16,61 @@
       elemData = json.feed.entry;
   }
 
-  function addBeast(BeastName){
-    $('#index .list').append('<div class="beastSelect">' + BeastName + '</div>')
+  function addSpell(Spell){
+    var spellHTML = "<div class='spellSelect'>";
+    spellHTML = spellHTML + "<img src='" + spellList[Spell].Icon + "'>"
+    if(spellList[Spell].Synthesis){
+      spellHTML = spellHTML + "<div class='synList'><h2>Item Synthesis</h2><ul>" + 
+        spellList[Spell].Synthesis.replace("(LIM)", "<li>Limited Use Items</li>").replace("(RES)", "<li>Reusable Items</li>").replace("(PERM-ALL)", "<li>Permanents for any witch</li>").replace("(PERM-AFFONLY)", "<li>Permanents for practitioners of " + spellList[Spell].Category + "</li>") + "</ul></div>"
+    }
+    spellHTML = spellHTML + "<h2>" + Spell + "</h2>"
+    spellHTML = spellHTML + spellList[Spell].Description.replace("[", "<").replace("]", ">")
+    spellHTML = spellHTML + "</div>"
+    $('.list').append(spellHTML)
   }
 
-  function creatureFilter(){
-    var selectType = $('.filterType option:selected').text()
-    var selectEnv = $('.filterEnv option:selected').text()
-    var selectDiff = $('.filterDifficulty option:selected').text()
-    var selectRarity = $('.filterRarity option:selected').text()
-    var selectMisc = $('.filterMisc option:selected').text()
+  function spellFilter(){
+    var selectCat = $('.filterCat option:selected').text()
+    var selectBranch = $('.filterBranch option:selected').text()
+    var selectLevel = $('.filterLevel option:selected').text()
+    var selectPrereq = $('.filterPrereq option:selected').text()
+    var selectSyn = $('.filterSyn option:selected').text()
 
-    $('#index .list').text("");
+    // Clear branch filter to be re-set
+    $(".filterBranch").html("<option>All Magic Branches</option>")
 
-    for(var beast in BeastList){
-      if(beast.search("[*][*]") > -1){ continue; }
-      if((selectType.search("All") == -1 && selectType != "Other" && selectType != BeastList[beast].Type)
-        || (selectType == "Other" && ["Beast", "Plant", "Wraith", "Extraplanar"].includes(BeastList[beast].Type) ) ){
+    $('.list').text("");
+
+    for(var spell in spellList){
+      if(spell.search("[*][*]") > -1){ continue; }
+      if(selectCat.search("All") == -1 && selectCat != spellList[spell].Type ){
         continue;
       }
-      if( selectEnv.search("Any") == -1 && ( !BeastList[beast].Environment || BeastList[beast].Environment.search(selectEnv) == -1 )){
+      if( selectLevel.search("All") == -1 && ( (spellList[spell].Level && spellList[spell].Level.substring(0,3).toUpperCase() != selectLevel.substring(0,3)) || (!spellList[spell].Level && selectLevel == "Basic" ) ) ){
         continue;
       }
-      if( selectDiff.search("Any") == -1 && ( !BeastList[beast].Difficulty || BeastList[beast].Difficulty.search(selectDiff) == -1 )){
+      if( selectPrereq.search("[?]") == -1 &&
+          (selectPrereq == "Yes" && spellList[spell].Prerequisites.search("PREREQ") == -1) &&
+          (selectPrereq == "No" && spellList[spell].Prerequisites.search("PREREQ") != -1) ) {
         continue;
       }
-      if( selectRarity.search("Any") == -1 && ( !BeastList[beast].Rarity || BeastList[beast].Rarity.search(selectRarity) == -1 )){
+      if( selectSyn.search("Any") == -1 && spellList[spell].Synthesis){
         continue;
       }
-      if( selectMisc.search("Misc.") == -1 && ( !BeastList[beast].SubTypes || BeastList[beast].SubTypes.search(selectMisc) == -1 )){
+
+      // include all branches which fit the above reqs in the branch dropdown + the one that was selected
+      if($(".filterBranch option:contains(" + spellList[spell].Category + ")").length == 0){
+        $(".filterBranch").append("<option>" + spellList[spell].Category + "</option>");
+      }
+
+      if( selectBranch.search("All") == -1 && selectBranch != spellList[spell].Category ){
         continue;
       }
-      addBeast(beast);
+      addSpell(spell);
     }
-    $( "#index .list .beastSelect" ).click(function() {
-      fillBeast($( this ).text());
-    });
-  }
-
-  function setFramedImage(BeastName){
-    // If adding framed image where none exists
-    if($(".beastContainer .beastImg1").length == 0 && BeastList[BeastName].ImageOne){
-      $('.beastContainer').prepend('<img src="'+BeastList[BeastName].ImageOne+'" class="beastImg1" style="display: none;">')
-      $(".beastContainer .beastImg1").fadeIn(800);
-    }else{
-      // Remove previous framed image if it exists
-      $(".beastContainer .beastImg1").fadeOut(800, function(){
-        $('.beastContainer .beastImg1').remove();
-        if(BeastList[BeastName].ImageOne){
-          $('.beastContainer').prepend('<img src="'+BeastList[BeastName].ImageOne+'" class="beastImg1" style="display: none;">')
-          $(".beastContainer .beastImg1").fadeIn(800);
-        }
-      });
-    }
-  }
-
-  function fillBeast(BeastName){
-
-    /* Check if page already filled */
-    if($('.beastName').text().replace($('.beastName h2').text(), "") == BeastName.replace(/\*/g,"")){
-      return;
-    }
-      
-    /* Framed Image */
-    $('.beastContainer .beastImg1').remove();
-    if(BeastList[BeastName].ImageOne){
-      $('.beastContainer').prepend('<img src="'+BeastList[BeastName].ImageOne+'" class="beastImg1">')
-    }
-
-    /* Name */
-    $('.beastName').text(BeastName.replace(/\*/g,""));
-
-    if(BeastList[BeastName].ScienceName){
-      $('.beastName').append('<h2>' + BeastList[BeastName].ScienceName + '</h2>')
-    }
-
-    /* Description */
-    $('.beastContainer').css({ "top" : "10%", "bottom" : "10%", "left" : "5%", "right" : "5%" });
-    if(BeastList[BeastName].Description){
-      $('.beastDesc').html(BeastList[BeastName].Description);
-    }else{ $('.beastDesc').html("")}
-    $('.bufferSpace').css({ "height" : "1px" });
-
-    /* Credits */
-    if(BeastList[BeastName].Credit){
-      $('.credits').html(BeastList[BeastName].Credit);
-      $('.credits').css("display","block");
-    }else{ $('.credits').css("display","none") }
-
-    
-    /* Semitransparent Image */
-    $('#bestiary .beastImg2').remove();
-    if(BeastList[BeastName].ImageTwo){
-      var ImgStyle = "";
-      if(BeastList[BeastName].ImagePosition.search("left") == -1) {
-        ImgStyle = ImgStyle.concat("right:0px;");
-        if(BeastList[BeastName].ImagePosition.search("right") > -1){
-          $('.beastContainer').css("right", "43%");
-        }
-      }
-      if(BeastList[BeastName].ImagePosition.search("right") == -1) {
-        ImgStyle = ImgStyle.concat("left:0px;");
-        if(BeastList[BeastName].ImagePosition.search("left") > -1){ 
-          $('.beastContainer').css("left", "43%"); 
-        }
-      }
-      if(BeastList[BeastName].ImagePosition.search("top") == -1) {
-        ImgStyle = ImgStyle.concat("bottom:0px;");
-        if(BeastList[BeastName].ImagePosition == "bottom"){ 
-          $('.beastContainer').css("bottom", "30%"); 
-        }
-      }
-      if(BeastList[BeastName].ImagePosition.search("bottom") == -1) {
-        ImgStyle = ImgStyle.concat("top:0px;");
-        if(BeastList[BeastName].ImagePosition == "top"){ 
-          $('.beastContainer').css("top", "30%"); 
-          $('.beastContainer').css("right", "43%"); 
-        }
-      }
-      if(BeastList[BeastName].ImagePosition && BeastList[BeastName].ImagePosition.length > 6) {
-        ImgStyle = ImgStyle.concat("max-width:58%;max-height:68%;")
-      }else{
-        ImgStyle = ImgStyle.concat("max-width:100%;max-height:100%;")
-      }
-
-      $('#bestiary').append('<img src="'+BeastList[BeastName].ImageTwo+'" class="beastImg2" style="'+ ImgStyle +'">')
-    }
-
-    /* Sidebar Info Position */
-    // Position size comparison around other images
-    var isBufferNeeded = true;
-    if(BeastList[BeastName].ImageTwo && BeastList[BeastName].ImagePosition.search("bottom") > -1){
-      $('.info').css({"top": "30px", "bottom": "auto"});
-      isBufferNeeded = false;
-    }else{
-      $('.info').css({"bottom": "30px", "top": "auto"});
-    }
-      
-    if(BeastList[BeastName].ImagePosition == "left" || BeastList[BeastName].ImagePosition == "top right" || BeastList[BeastName].ImagePosition == "bottom right" || BeastList[BeastName].ImageOne || BeastList[BeastName].ImagePosition == "top" ){
-      $('.info').css({"right": "25px", "left": "auto"});
-    }else{
-      $('.info').css({"left": "30px", "right": "auto"});
-    }
-
-    if(BeastList[BeastName].ImageTwo && ((BeastList[BeastName].ImagePosition == "bottom" ) || BeastList[BeastName].ImagePosition == "top")){
-      $('.summaryInfo,.sizeRef').css({"display" : "block"})
-      isBufferNeeded = false;
-    }else{
-      $('.summaryInfo,.sizeRef').css({"display" : "inline-block"})
-    }
-    if(BeastList[BeastName].ImagePosition && BeastList[BeastName].ImagePosition.length > 6) { 
-      isBufferNeeded = false 
-    }
-    if (isBufferNeeded) { $('.bufferSpace').css({ "height" : "130px" }); }
-
-    /* Sidebar Info */
-    var summaryTable = "<h2>Summary</h2><table style='margin-bottom: 10px;'>";
-    var summaryTable = summaryTable + "<tr><td><b>Classification</b></td><td>" + BeastList[BeastName].Type + "</td></tr>"
-    if(BeastList[BeastName].Environment){
-      if(BeastList[BeastName].Environment.search(", ") > -1){
-        var env = BeastList[BeastName].Environment.substring(BeastList[BeastName].Environment.search(", ")+2)
-      }else{
-        var env = BeastList[BeastName].Environment
-      }
-      var summaryTable = summaryTable + "<tr><td><b>Environment</b></td><td>" + env + "</td></tr>"
-    }
-    var summaryTable = summaryTable + "<tr><td><b>Magic</b></td><td>" + ((BeastList[BeastName].MagicType) ? BeastList[BeastName].MagicType : "None") + "</td></tr>"
-    var summaryTable = summaryTable + "<tr><td><b>Difficulty</b></td><td>" + ((BeastList[BeastName].Difficulty) ? BeastList[BeastName].Difficulty : "N/a") + "</td></tr>"
-    if(BeastList[BeastName].Rarity){
-      var summaryTable = summaryTable + "<tr><td><b>Rarity</b></td><td>" + BeastList[BeastName].Rarity + "</td></tr>"
-    }
-    if(BeastList[BeastName].SubTypes && BeastList[BeastName].SubTypes.search("Companion") > -1){
-      var summaryTable = summaryTable + "<tr><td><b>Other</b></td><td>" + "Companion" + "</td></tr>"
-    }
-    summaryTable = summaryTable + "</table>"
-    if(BeastName == "**Bestiary Overview"){
-      summaryTable = "<img src='https://i.imgur.com/3igIs5L.png' style='max-width: 410px; margin-left: -50px;'>";
-    }
-    $('.summaryInfo').html(summaryTable);
-
-
-    /* Size Reference */
-    // Clear all info from previous selection
-    $('.sizeRef').text("");
-    if(BeastList[BeastName].SizePerc){
-      var humanHeight = 100;
-      var beastHeight = 100;
-      var humanImgPath = "https://i.imgur.com/HBocSF7.png"
-      var beastImgPath;
-
-      // Set silhoettes
-      if(BeastList[BeastName].SizeImg){ 
-        beastImgPath = BeastList[BeastName].SizeImg 
-      }else{ 
-        beastImgPath = humanImgPath 
-      }
-
-      if(BeastList[BeastName].SizePerc <= 100) {
-        beastHeight = BeastList[BeastName].SizePerc
-      }else{
-        humanHeight = 10000.0/parseFloat(BeastList[BeastName].SizePerc);
-      }
-      $('.sizeRef').append("<h2>Size Reference</h2>");
-      $('.sizeRef').append("<table><tr><td><b>Adult Human</b></td><td><b>" + BeastName + "</b></td></tr><tr><td class='silhoetteWrap'><img src='" + humanImgPath + "' style='height: " + humanHeight + "%'></td><td class='silhoetteWrap'><img src='" + beastImgPath + "' style='height: " + beastHeight + "%'></td></tr></table>");
-
-      //correct width if needed
-      if(BeastList[BeastName].ImageOne && BeastList[BeastName].ImagePosition == "bottom"){
-        $('.beastContainer').css("right", "25%");
-      }
-    }else if(BeastList[BeastName].SizeImg){
-      // If only a silhoette image & no size reference, assume it's a filler sketch
-      $('.sizeRef').append("<img src='" + BeastList[BeastName].SizeImg + "' style='max-height: 140px; margin-left: 20px;'>")
-    }
-    
+    // Re-select correct branch
+    console.log("here")
+    $(".filterBranch").val(selectBranch);
   }
   
   $(document).ready(function(){
@@ -252,11 +94,13 @@
             spellList[spellKey] = {}
             spellList[spellKey].Name = currSpell;
             spellList[spellKey].Category = currCategory;
-            spellList[spellKey].Type = "Affinity Spell";
+            spellList[spellKey].Type = "Affinity";
           break;
           case 3:
             // Spell description.
-            spellList[spellKey].Description = affData[i].gs$cell.$t
+            if(!spellList[spellKey].Description){
+              spellList[spellKey].Description = affData[i].gs$cell.$t
+            } 
           break;
           case 4:
             // Requirements.
@@ -292,15 +136,29 @@
             spellList[spellKey] = {}
             spellList[spellKey].Name = currSpell;
             spellList[spellKey].Category = currCategory;
-            spellList[spellKey].Type = "Technique";
+            spellList[spellKey].Type = "Elemental";
+            // Add Branch to filters if not there already
+            if($(".filterBranch option:contains(" + currCategory + ")").length == 0){
+              $(".filterBranch").append("<option>" + currCategory + "</option>");
+            }
           break;
           case 3:
             // Spell description.
             spellList[spellKey].Description = elemData[i].gs$cell.$t
           break;
           case 4:
-            // Requirements.
+            // Requirements & level
             spellList[spellKey].Requirements = elemData[i].gs$cell.$t
+            switch(spellList[spellKey].Requirements.substring(0,3)){
+              case "ADV":
+                spellList[spellKey].Level = "Advanced";
+                break;
+              case "MAS":
+                spellList[spellKey].Level = "Mastery";
+                break;
+              default:
+                spellList[spellKey].Level = "Basic";
+            }
           break;
           case 5:
             // Image URL.
@@ -310,7 +168,8 @@
       }
 
       console.log(spellList)
-      //creatureFilter();
+
+      spellFilter();
       //fillBeast("**Bestiary Overview");
   });
   </script>   
@@ -522,12 +381,19 @@
     color: #080808;
   }
 
-  #index .list { 
-    position: absolute; 
+  .list { 
+    /*position: absolute; 
     left: 15px; right: 15px; bottom: 0px;
-    top: 260px;
+    top: 260px;*/
     overflow:auto;
-    border-top: 2px solid #672307;
+    height:100%;
+    margin-left: 32%;
+    margin-right: 5%;
+
+    /* Scrollbar fix for Firefox */
+    scrollbar-color: #672307 transparent;
+    scrollbar-width: thin;
+    /*border-top: 2px solid #672307;*/
   }
 
   #index .list .beastSelect {
@@ -594,8 +460,8 @@
     padding: 0px;
   }
   ::-webkit-scrollbar {
-    width: 2px;
-    height: 2px;
+    width: 10px;
+    height: 10px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -657,6 +523,36 @@
     border: none;
     border-bottom: 1px solid #672307;
     text-align: left;
+  }
+
+  /* Styles for individual spells */
+  .spellSelect {
+    margin-top: 20px;
+    margin-right: 50px;
+    color: #080808;
+    font: 13px / 16px Caudex, Georgia, Times New Roman, Times, serif;
+  }
+  .spellSelect img {
+    float: left;
+    clear: both;
+    margin-top: 10px;
+    margin-right: 5px;
+  }
+
+  .synList {
+    border-left: 2px solid #672307;
+    display: inline-block;
+    float: right;
+    text-align: center;
+    padding: 5px;
+  }
+  .synList ul {
+    list-style: none;
+    margin: 0px;
+    padding: 0px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 
   .c-main {
@@ -834,7 +730,7 @@
   
 </style>
 
-<link href="https://fonts.googleapis.com/css?family=Alice|Almendra|Caudex:400,700|Enriqueta|Kameron|Lustria|PT+Serif|Vollkorn|Zilla+Slab&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Caudex:400,700|Alegreya+SC:400,700&display=swap" rel="stylesheet">
 
 <html>
 <body>
@@ -861,38 +757,38 @@
             <div id="index">
               <div class="filters">
 
-                <select class="filterType select-css" onchange="creatureFilter()">
+                <select class="filterCat select-css" onchange="spellFilter()">
                   <option>All Magic Categories</option>
                   <option>Affinity</option> 
                   <option>Elemental</option>
                 </select>
 
-                <select class="filterEnv select-css" onchange="creatureFilter()">
+                <select class="filterBranch select-css" onchange="spellFilter()">
                   <option>All Magic Branches</option>
-                  <option>Generate this programaically pls</option>
                 </select>
 
-                <select class="filterDifficulty select-css" onchange="creatureFilter()">
+                <select class="filterLevel select-css" onchange="spellFilter()">
                   <option>All Levels</option>
                   <option>Basic</option>
                   <option>ADV - Advanced</option>
                   <option>MAS - Masterful</option>
                 </select>
 
-                <select class="filterRarity select-css" onchange="creatureFilter()">
+                <select class="filterPrereq select-css" onchange="spellFilter()">
                   <option>Prerequisites?</option>
                   <option>Yes</option>
                   <option>No</option>
                 </select>
 
-                <select class="filterMisc select-css" onchange="creatureFilter()">
+                <select class="filterSyn select-css" onchange="spellFilter()">
                   <option>Any Synergy Potential</option>
                   <option>Generate this programaically pls</option>
                 </select>
 
               </div>
-              <div class="list"></div>
+              
             </div>
+            <div class="list"></div>
 
           </div>
         </div>
