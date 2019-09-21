@@ -19,23 +19,64 @@
   function addSpell(Spell){
     var spellHTML = "<div class='spellSelect'>";
     spellHTML = spellHTML + "<img src='" + spellList[Spell].Icon + "'>"
-    if(spellList[Spell].Synthesis){
-      spellHTML = spellHTML + "<div class='synList'><h2>Item Synthesis</h2><ul>" + 
-        spellList[Spell].Synthesis.replace("(LIM)", "<li>Limited Use Items</li>").replace("(RES)", "<li>Reusable Items</li>").replace("(PERM-ALL)", "<li>Permanents for any witch</li>").replace("(PERM-AFFONLY)", "<li>Permanents for practitioners of " + spellList[Spell].Category + "</li>") + "</ul></div>"
-    }
     spellHTML = spellHTML + "<h2>" + Spell + "</h2>"
+    if(spellList[Spell].Synthesis){
+      spellHTML = spellHTML + "<div class='synList'><h2>( Item Synthesis )</h2><ul>" + 
+        spellList[Spell].Synthesis.replace("(LIM)", "<li>Limited Use Items</li>").replace("(RES)", "<li>Reusable Items</li>").replace("(PERM-ALL)", "<li>Permanents for any witch</li>").replace("(COM)", "<li>Companion</li>").replace("(PERM-AFFONLY)", "<li>Permanents for " + spellList[Spell].Category + " witches</li>") + "</ul></div>"
+    }
+    
     spellHTML = spellHTML + spellList[Spell].Description.replace("[", "<").replace("]", ">")
+    if( spellList[Spell].Requirements.search("PREREQ") != -1 ){
+      spellHTML = spellHTML + "<br/><b>Requires ability of: </b>" + spellList[Spell].Requirements.substring(spellList[Spell].Requirements.search("PREREQ") + 8)
+    }
     spellHTML = spellHTML + "</div>"
     $('.list').append(spellHTML)
   }
+
+  function getSpellCode(Spell){
+    // Set up BBC code
+    var spellBBC = '[div][attr="class","item"][img style="max-width:100%;" src="'
+    spellBBC = spellBBC + spellList[Spell].Icon
+    spellBBC = spellBBC + '"]\n   [h2]'
+    spellBBC = spellBBC + spellList[Spell].Name
+    if(spellList[Spell].Level.substring(0,3).toUpperCase() != 'BAS'){
+      spellBBC = spellBBC + " [b]" + spellList[Spell].Level.substring(0,3).toUpperCase() + "[/b]"
+    }
+    spellBBC = spellBBC + "[/h2]\n   [h3]"
+    spellBBC = spellBBC + spellList[Spell].Type + " - " + spellList[Spell].Category
+    if(spellList[Spell].Synthesis){
+      spellBBC = spellBBC + " [i]SYN[i] Can synthesize as "
+      spellBBC = spellBBC + spellList[Spell].Synthesis.replace(" ", " or ").replace("(LIM)", "[b]LIMITED USE[/b]").replace("(RES)", "[b]REUSABLE[/b]").replace("(PERM-ALL)", "[b]PERMANENT (ANY AFF)[/b]").replace("(COM)", "[b]COMPANION[/b]").replace("(PERM-AFFONLY)", "[b]PERMANENT (" + spellList[Spell].Category + " ONLY)[/b]")
+      spellBBC = spellBBC + " items[/i][/i]"
+    }
+    spellBBC = spellBBC + "[/h3]\n   [div]"
+    spellBBC = spellBBC + spellList[Spell].Description
+    spellBBC = spellBBC + "\n[/div][/div]"
+
+   $('.codeDump code').text(spellBBC)
+ }
 
   function spellFilter(){
     var selectCat = $('.filterCat option:selected').text()
     var selectBranch = $('.filterBranch option:selected').text()
     var selectLevel = $('.filterLevel option:selected').text()
     var selectPrereq = $('.filterPrereq option:selected').text()
-    var selectSyn = $('.filterSyn option:selected').text()
+    var selectSyn = "Any"
 
+    switch($('.filterSyn option:selected').text()){
+      case "Limited Use Items":
+        selectSyn = "(LIM)"
+        break;
+      case "Reusable Items":
+        selectSyn = "(RES)"
+        break;
+      case "Companions":
+        selectSyn = "(COM)"
+        break;
+      case "Permanents":
+        selectSyn = "[(]PERM"
+        break;
+    }
     // Clear branch filter to be re-set
     $(".filterBranch").html("<option>All Magic Branches</option>")
 
@@ -46,15 +87,17 @@
       if(selectCat.search("All") == -1 && selectCat != spellList[spell].Type ){
         continue;
       }
-      if( selectLevel.search("All") == -1 && ( (spellList[spell].Level && spellList[spell].Level.substring(0,3).toUpperCase() != selectLevel.substring(0,3)) || (!spellList[spell].Level && selectLevel == "Basic" ) ) ){
+
+      if( selectLevel.search("All") == -1 && spellList[spell].Level && spellList[spell].Level.substring(0,3).toUpperCase() != selectLevel.substring(0,3).toUpperCase() ){
         continue;
       }
+
       if( selectPrereq.search("[?]") == -1 &&
-          (selectPrereq == "Yes" && spellList[spell].Prerequisites.search("PREREQ") == -1) &&
-          (selectPrereq == "No" && spellList[spell].Prerequisites.search("PREREQ") != -1) ) {
+          ((selectPrereq == "Yes" && spellList[spell].Requirements.search("PREREQ") == -1) ||
+          (selectPrereq == "No" && spellList[spell].Requirements.search("PREREQ") != -1)) ) {
         continue;
       }
-      if( selectSyn.search("Any") == -1 && spellList[spell].Synthesis){
+      if( selectSyn.search("Any") == -1 && ( !(spellList[spell].Synthesis) || ( spellList[spell].Synthesis && spellList[spell].Synthesis.search(selectSyn) == -1 )) ){
         continue;
       }
 
@@ -69,8 +112,12 @@
       addSpell(spell);
     }
     // Re-select correct branch
-    console.log("here")
     $(".filterBranch").val(selectBranch);
+
+    // Make spells clickable
+    $( ".list .spellSelect h2" ).click(function() {
+      getSpellCode($( this ).text());
+    });
   }
   
   $(document).ready(function(){
@@ -94,7 +141,7 @@
             spellList[spellKey] = {}
             spellList[spellKey].Name = currSpell;
             spellList[spellKey].Category = currCategory;
-            spellList[spellKey].Type = "Affinity";
+            spellList[spellKey].Type = "Scroll";
           break;
           case 3:
             // Spell description.
@@ -103,12 +150,27 @@
             } 
           break;
           case 4:
-            // Requirements.
+            // Requirements & level
             spellList[spellKey].Requirements = affData[i].gs$cell.$t
+
+            switch(spellList[spellKey].Requirements.substring(0,3)){
+              case "ADV":
+                spellList[spellKey].Level = "Advanced";
+                break;
+              case "MAS":
+                spellList[spellKey].Level = "Mastery";
+                break;
+              default:
+                spellList[spellKey].Level = "Basic";
+            }
           break;
           case 5:
             // Image URL.
             spellList[spellKey].Icon = affData[i].gs$cell.$t
+
+            // Set Defaults
+            if( !spellList[spellKey].Requirements ){ spellList[spellKey].Requirements = "nA" }
+            if( !spellList[spellKey].Level ){ spellList[spellKey].Level = "Basic" }
           break;
           case 6:
             // Price range.
@@ -119,6 +181,7 @@
             spellList[spellKey].Synthesis = affData[i].gs$cell.$t
           break;
         }
+
       }
       // loop through all elemental spells
       for(var i in elemData){
@@ -136,7 +199,7 @@
             spellList[spellKey] = {}
             spellList[spellKey].Name = currSpell;
             spellList[spellKey].Category = currCategory;
-            spellList[spellKey].Type = "Elemental";
+            spellList[spellKey].Type = "Technique";
             // Add Branch to filters if not there already
             if($(".filterBranch option:contains(" + currCategory + ")").length == 0){
               $(".filterBranch").append("<option>" + currCategory + "</option>");
@@ -163,6 +226,10 @@
           case 5:
             // Image URL.
             spellList[spellKey].Icon = elemData[i].gs$cell.$t
+
+            // Set Defaults
+            if( !spellList[spellKey].Level ){ spellList[spellKey].Level = "Basic" }
+            if( !spellList[spellKey].Requirements ){ spellList[spellKey].Requirements = "nA" }
           break;
         }
       }
@@ -216,114 +283,6 @@
     background: #52352b url('Resources/Melamine-wood-004.png') repeat; 
   }
 	
-  /* Book leather cover */
-  #book {
-    width: 1100px;
-    height: 600px;
-    margin-top: 5%;
-    position: absolute;
-    text-align: left;
-    background-color: #672307;
-    background-image: url('https://i.imgur.com/HpiYgtk.png');
-    border-radius: 0px 3px 3px 0px;
-
-    border: 0px;
-    box-shadow: 
-      inset 0 4px 5px rgba(0,0,0,0.1),
-      inset 0 -4px 5px rgba(0,0,0,0.3),
-      inset 0 -2px 3px rgba(0,0,0,0.3),
-      0 5px 7px rgba(0,0,0,0.5);
-    z-index: 0;
-  }
-
-  /* Book Spine */
-  #book::before { 
-    content: '';
-    display: block;
-    position: absolute;
-    top: -1%;
-    width: 6%;
-    bottom: -1%;
-    background-color: inherit;
-    background-image: inherit;
-    left: 17%;
-    moz-border-radius: 50% / 1%;
-    webkit-border-radius: 50% / 1%;
-    border-radius: 50% / 1%;
-
-    border: inherit;
-    box-shadow: inherit;
-    z-index: -3;
-  }
-
-  /* Book Inner Cover */
-  #book::after {
-    content: '';
-    display: block;
-    position: absolute;
-    left: 0;
-    bottom: 10px;
-    right: 10px;
-    top: 10px;
-    background-color: #b39178;
-    background-image: url(https://i.imgur.com/YH2hlmA.png);
-    z-index: -3;
-  }
-
-  /* Book Pages */
-  #book .page {
-    position: absolute;
-    top: 5px; 
-    bottom: 25px;
-    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
-
-    color: #080808;
-    font: 13px / 16px Caudex, Georgia, Times New Roman, Times, serif;
-  }
-  #book .page::before, #book .page::after {
-    content: '';
-    display: block;
-    position: absolute;
-    background: url(https://i.imgur.com/YH2hlmA.png), -webkit-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -moz-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), -ms-linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    background: url(https://i.imgur.com/YH2hlmA.png), linear-gradient(left, #e1ddd8 0%, #fffbf6 100%);
-    box-shadow: inset 0px -1px 2px rgba(50, 50, 50, 0.1), inset -1px 0px 1px rgba(150, 150, 150, 0.2);
-    /*width: 100%;*/
-    height: 100%;
-  }
-  #book .page::before {
-    top: 5px;
-    z-index: -1;
-  }
-  #book .page.left::before {
-    left: -5px;
-    right: 0px;
-    border-radius: 0px 30px 5px 0px / 0px 10px 10px 0px;
-  }
-  #book .page.left::after {
-    left: -10px;
-    right: 0px;
-    border-radius: 0px 30px 10px 0px / 0px 10px 10px 0px;
-  }
-  #book .page.right::before {
-    right: -5px;
-    left: 0px;
-    border-radius: 30px 3px 3px 5px / 10px 3px 3px 10px;
-  }
-  #book .page.right::after {
-    right: -10px;
-    left: 0px;
-    border-radius: 30px 3px 3px 10px / 10px 3px 3px 10px;
-  }
-  #book .page::after {
-    top: 10px;
-    z-index: -2;
-  }
   h2 {
     color: #34211a;
     font: bold 12px / 12px Alegreya SC, Georgia, serif;
@@ -334,19 +293,9 @@
   #index h2 {
     margin-bottom: 15px;
   }
-  #book .page.left { 
-    left: 0px;
-    width: 20%;
-    border-radius: 0px 30px 3px 0px / 0px 10px 3px 0px;
-  }
-  #book .page.right { 
-    left: 20%;
-    right: 25px;
-    border-radius: 30px 3px 3px 3px / 10px 3px 3px 3px;
-  }
   #index { 
     position: absolute; 
-    top: 12%; 
+    top: 75px; 
     bottom: 0%; 
     left: 5%; 
     right: 70%; 
@@ -354,8 +303,16 @@
     overflow: hidden;
   }
 
-  #bestiary_list {
-    display: none;
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    width: 100%;
+    background-color: #672307;
   }
   
   
@@ -386,9 +343,11 @@
     left: 15px; right: 15px; bottom: 0px;
     top: 260px;*/
     overflow:auto;
-    height:100%;
+    height: calc(100% - 62px);;
     margin-left: 32%;
     margin-right: 5%;
+    padding-bottom: 30px;
+    box-sizing: border-box;
 
     /* Scrollbar fix for Firefox */
     scrollbar-color: #672307 transparent;
@@ -416,135 +375,42 @@
 
   h1 {
     color: #672307;
-    font: 35px / 35px "Alegreya SC", Georgia, serif;
+    font: 45px / 30px "Hobbiton Brushhand", Cardinal, Georgia, serif;
     margin: 0px; 
-    margin-top: 15px;
+    margin-top: 30px;
     border-bottom: 2px solid;
     width: 90%;
     margin-left: 5%;
     letter-spacing: 2px;
     cursor: pointer;
   }
-  td.beastName {
-    color: #672307;
-    font: 50px / 40px "Hobbiton Brushhand", Cardinal, Georgia, serif;
-    margin: 0px;
-    text-align: center;
-  }
-  #bestiary .beastDesc { 
-    /*border: 1px solid #8e493c;*/
-    padding: 15px; 
-    max-height: 100%;
-    overflow-y: auto;
-    text-shadow: 0px 0px 5px #fffbf6, 0px 0px 3px #fffbf6;
-  }
-  #bestiary .beastDesc h1 { 
-    background-image: url('https://i.imgur.com/cRe39mL.png'), url('https://i.imgur.com/G5SRvhT.png');
-    background-position: top center, bottom center;
-    background-repeat: no-repeat;
-    background-size: 150px;
-    padding: 30px 0px;
-    margin: 0px;
-    font-size: 14px;
-  }
-  #bestiary .beastDesc:first-child:first-letter {
-    float: left;
-    font-size: 50px;
-    line-height: 40px;
-    padding-right: 8px;
-    padding-left: 3px;
-    padding-top: 3px;
-    font-weight: normal;
-  }
-  #bestiary .bufferspace {
-    padding: 0px;
-  }
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    width: 100%;
-    background-color: #672307;
-  }
-  #bestiary .beastContainer {
-    position: absolute;
-    z-index: 1;
-  }
-  #bestiary .beastContainer table {
-    width: auto;
-    height: 100%;
-  }
-  #bestiary .beastContainer td { border: none; }
-  #bestiary .beastImg1 {
-    max-height: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    padding: 5px;
-    margin-right: 10px;
-    border: 20px solid #4d3f39;
-    float: left;
-  }
-  #bestiary .beastImg2 { 
-    position: absolute; 
-    z-index: 0;
-  }
-  #bestiary .credits { 
-    color: #672307;
-    font: 10px arial, sans-serif;text-align:center; text-transform:uppercase;
-    position:absolute; left:0px; right:0px; bottom:5px;
-    z-index: 2;
-  }
-  #bestiary .info {
-    position: absolute;
-    z-index: 1;
-  }
-  #bestiary .sizeRef {
-    text-align: center;
-    vertical-align: middle;
-  }
-  #bestiary .sizeRef td {
-    border: none;
-    text-align: center;
-  }
-  #bestiary .sizeRef td.silhoetteWrap {
-    height: 100px;
-    vertical-align: bottom;
-  }
-
-  #bestiary .summaryInfo{
-    text-align: center;
-    vertical-align: middle;
-  }
-  #bestiary .summaryInfo table td {
-    border: none;
-    border-bottom: 1px solid #672307;
-    text-align: left;
-  }
 
   /* Styles for individual spells */
   .spellSelect {
     margin-top: 20px;
-    margin-right: 50px;
+    margin-right: 30px;
     color: #080808;
     font: 13px / 16px Caudex, Georgia, Times New Roman, Times, serif;
   }
   .spellSelect img {
     float: left;
     clear: both;
-    margin-top: 10px;
+    margin-top: 8px;
     margin-right: 5px;
+  }
+  .spellSelect > h2 {
+    cursor: pointer;
   }
 
   .synList {
     border-left: 2px solid #672307;
+    color: #672307;
     display: inline-block;
     float: right;
     text-align: center;
     padding: 5px;
+    margin-left: 5px;
+    margin-top: 5px;
   }
   .synList ul {
     list-style: none;
@@ -553,6 +419,29 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
+    line-height: 12px;
+  }
+
+  .codeDump {
+    padding-left: 10%;
+    padding-right: 10%;
+
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+  }
+  .codeDump code {
+    display: block;
+    white-space: pre-wrap;
+
+    height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid rgba(0,0,0,0.3);
+    font-size: 10px;
+    padding: 10px;
+    box-sizing: border-box;
   }
 
   .c-main {
@@ -561,6 +450,7 @@
     animation: brighten 4s infinite;
     opacity: 0.9;
     padding-top: 80px;
+    box-sizing: border-box;
   }
 
 
@@ -599,40 +489,51 @@
     height: 520px;
     border-radius: 32px / 10px;
     margin: 0 5px;
-    z-index: 1;
     box-shadow: -10px 5px 20px rgba(0,0,0,0.4);
   }
       
   .c-scroll__roll:before {
     content: '';
     left: 2px;
-    top: -7px;
+    top: -10px;
     position: absolute;
     right: 2px;
-    height: 7px;
+    height: 15px;
     background-color: #4A2B11;
     background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
+    z-index: -1;
+    border-radius: 50% 50% 0px 0px / 8px 8px 0px 0px;
   }
       
   .c-scroll__roll:after {
     content: '';
     left: 2px;
-    bottom: -7px;
+    bottom: -10px;
     position: absolute;
     right: 2px;
-    height: 7px;
+    height: 15px;
     background-color: #4A2B11;
     background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
+    z-index: -1;
+    border-radius: 0% 0% 50% 50% / 0px 0px 8px 8px;
   }
     
   .c-scroll__knob {
     background-color: #CD9E53;
-    background-image: linear-gradient(to right, #4A2B11 5%, #CD9E53 55%, #CD9E53, #4A2B11);
-    box-shadow: inset 0 6px 32px rgba(74, 43, 17, 1);
-    border-radius: 30px/15px;
+    background-image: linear-gradient(to right, #080808 5%, #4A2B11 55%, #4A2B11, #080808);
+    box-shadow: inset 0 6px 12px #080808;
     width: 70px;
     position: relative;
     height: calc(70px / 2.34);
+    z-index: -2;
+  }
+
+  .c-scroll__knob--top, .c-scroll__knob--top .c-scroll__knob--small {
+    border-radius: 50%/70% 70% 30% 30%;
+  }
+
+  .c-scroll__knob--bottom, .c-scroll__knob--bottom .c-scroll__knob--small {
+    border-radius: 50%/30% 30% 70% 70%;
   }
     
   .c-scroll__content {
@@ -660,30 +561,32 @@
     transform: scale(.5);
   }
 
-  .c-scroll__knob--left {
-    top: -20px;
+  .c-scroll__knob--top .c-scroll__knob--small {
+    top: -17px;
   }
 
-  .c-scroll__knob--right {
-    bottom: -20px;
+  .c-scroll__knob--bottom .c-scroll__knob--small {
+    bottom: -17px;
   }
 
-  .c-scroll__holder--bottom {
+  .c-scroll__holder--right {
     margin-left: -20px;
   }
 
   .c-scroll__holder--top {
-    margin-right: -20px;
+    margin-right: -5px;
   }
 
   .c-scroll__paper {
     background-image: url(https://i.imgur.com/YH2hlmA.png),linear-gradient(to right, #c19b5d 0%,#d9ba7e 3%,#ebd095 10%,#ebd095 89%,#e5c78b 91%,#8e662f 100%);
-    box-shadow: inset 0 0 32px #c19b5d;
+    background-size: 400px, auto;
+    box-shadow: inset -15px 0 32px #c19b5d;
     clip-path: polygon(0 0, 8% 0.5%, 9% 4%, 10% 1%, 10.5% 3%, 11% 0.5%, 17% 0, 18% 2%, 19% 0.5%, 25% 0%, 25.5% 0.5%, 26% 0, 30% 0, 32.5% 2%, 33% 1%, 34% 1.5%, 35.5% 0.5%, 40% 0, 47% 0%, 47.5% 0.5%, 48% 0, 52% 0, 53% 1%, 54.5% 0, 100% 0, 100% 100%, 0 100%);
   }
 
   .c-scroll__roll {
     background-image: url(https://i.imgur.com/YH2hlmA.png),linear-gradient(to right, #5f3d08, #EED89F 60%, #98743C);
+    background-size: 400px, auto;
   }
 
   .select-css {
@@ -727,6 +630,17 @@
   .select-css option {
     font-weight:normal;
   }
+
+  .filters input {
+    box-sizing: border-box; 
+    margin-left: 10%; 
+    width: 80%;
+    border: 1px solid #aaa;
+
+    line-height: 1.3;
+    padding: .6em 1.4em .5em .8em;
+    background-color: rgba(255,255,255,0.6);
+  }
   
 </style>
 
@@ -742,25 +656,25 @@
     <div class="l-scroll">
       <div class="c-scroll">
         <div class="c-scroll__holder c-scroll__holder--top">
-          <div class="c-scroll__knob">
-            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--left"></div>
+          <div class="c-scroll__knob c-scroll__knob--top">
+            <div class="c-scroll__knob c-scroll__knob--small"></div>
           </div>
-          <div class="c-scroll__roll c-scroll__roll--top"></div>
-          <div class="c-scroll__knob">
-            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--right"></div>
+          <div class="c-scroll__roll c-scroll__roll--left"></div>
+          <div class="c-scroll__knob c-scroll__knob--bottom">
+            <div class="c-scroll__knob c-scroll__knob--small"></div>
           </div>
         </div>
         <div class="c-scroll__paper">
           <div class="c-scroll__content">
 
-            <h1 onclick="fillBeast('**Bestiary Overview')">Scroll of Scrolls</h1>
+            <h1>Scroll of Scrolls</h1>
             <div id="index">
               <div class="filters">
 
                 <select class="filterCat select-css" onchange="spellFilter()">
-                  <option>All Magic Categories</option>
-                  <option>Affinity</option> 
-                  <option>Elemental</option>
+                  <option>All Ability Types</option>
+                  <option>Scroll</option> 
+                  <option>Technique</option>
                 </select>
 
                 <select class="filterBranch select-css" onchange="spellFilter()">
@@ -782,23 +696,31 @@
 
                 <select class="filterSyn select-css" onchange="spellFilter()">
                   <option>Any Synergy Potential</option>
-                  <option>Generate this programaically pls</option>
+                  <option>Limited Use Items</option>
+                  <option>Reusable Items</option>
+                  <option>Companions</option>
+                  <option>Permanents</option>
                 </select>
 
+                <input type="text" placeholder="Search descriptions"></input>
               </div>
-              
+
+              <div class="codeDump">
+                <b>Click a spell's name to get its inventory code:</b>
+                <code></code>
+              </div>
             </div>
             <div class="list"></div>
 
           </div>
         </div>
-        <div class="c-scroll__holder c-scroll__holder--bottom">
-          <div class="c-scroll__knob">
-            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--left"></div>
+        <div class="c-scroll__holder c-scroll__holder--right">
+          <div class="c-scroll__knob c-scroll__knob--top">
+            <div class="c-scroll__knob c-scroll__knob--small"></div>
           </div>
-          <div class="c-scroll__roll c-scroll__roll--bottom"></div>
-          <div class="c-scroll__knob">
-            <div class="c-scroll__knob c-scroll__knob--small c-scroll__knob--right"></div>
+          <div class="c-scroll__roll c-scroll__roll--right"></div>
+          <div class="c-scroll__knob c-scroll__knob--bottom">
+            <div class="c-scroll__knob c-scroll__knob--small"></div>
           </div>
         </div>
       </div>
