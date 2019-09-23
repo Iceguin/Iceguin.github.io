@@ -40,7 +40,7 @@
     spellBBC = spellBBC + '"]\n   [h2]'
     spellBBC = spellBBC + spellList[Spell].Name
     if(spellList[Spell].Level.substring(0,3).toUpperCase() != 'BAS'){
-      spellBBC = spellBBC + " [b]" + spellList[Spell].Level.substring(0,3).toUpperCase() + "[/b]"
+      spellBBC = spellBBC + "[b]" + spellList[Spell].Level.substring(0,3).toUpperCase() + "[/b]"
     }
     spellBBC = spellBBC + "[/h2]\n   [h3]"
     spellBBC = spellBBC + spellList[Spell].Type + " - " + spellList[Spell].Category
@@ -84,7 +84,7 @@
 
     for(var spell in spellList){
       if(spell.search("[*][*]") > -1){ continue; }
-      if(selectCat.search("All") == -1 && selectCat != spellList[spell].Type ){
+      if(selectCat.search("Both") == -1 && selectCat != spellList[spell].Type ){
         continue;
       }
 
@@ -672,7 +672,7 @@
               <div class="filters">
 
                 <select class="filterCat select-css" onchange="spellFilter()">
-                  <option>All Ability Types</option>
+                  <option>Both Magic Types</option>
                   <option>Scroll</option> 
                   <option>Technique</option>
                 </select>
