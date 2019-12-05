@@ -9,7 +9,7 @@
 html, body {
   margin: 0;
   height: 100%;
-  padding: 3px;
+  padding: 3px 50px;
   font-family: Arial, sans-serif;
   font-size: 16px;
 }
@@ -20,6 +20,9 @@ html, body {
 #bottom {
   text-align: center;
   vertical-align: middle;
+}
+img {
+  max-width: 100%;
 }
 </style>
 </head>
@@ -42,17 +45,18 @@ html, body {
 <script>
   var cors_api_url = 'https://cors-anywhere.herokuapp.com/';
 
-  var comics = [
+  var comics = [ // from https://www.gocomics.com/
   	'calvinandhobbes',
   	'overthehedge',
   	'garfield',
   	'shoe',
-  	'the-best-medicine',
+  	//'the-best-medicine',
   	'freerange',
   	'theargylesweater',
   	'frazz',
   	'looseparts',
   	'foxtrot',
+    'foxtrotclassics',
   	'doonesbury',
   	'peanuts',
   	'pearlsbeforeswine',
@@ -67,20 +71,40 @@ html, body {
   	'bloomcounty',
   	'broomhilda',
   	'cathy',
-  	'fowl-language',
   	'momma',
   	'nestheads',
   	'pickles',
   	'speedbump',
-  	'stonesoup'
+  	'stonesoup',
+    'stone-soup-classics',
+    'phoebe-and-her-unicorn'
   ];
 
-  function doCORSRequest(options, printResult) {
+  var comicsKing = [
+     'prince-valiant',
+     'blondie',
+     'baby-blues',
+     'zits',
+     'mutts',
+     'beetle-bailey-1'
+  ]
+
+  function doCORSRequest(options, printResult){
+    doCORSRequest(options, printResult, 0)
+  }
+
+  function doCORSRequest(options, printResult, count) {
     var x = new XMLHttpRequest();
     x.open(options.method, cors_api_url + options.url);
-    x.onload = x.onerror = function() {
+    x.onload = function() {
       printResult(x.responseText);
     };
+    if(count < 3){
+      x.onerror = doCORSRequest(options, printResult, count+1)
+      if(count > 0) { console.log('Count is ' + count + ' for ' + options.url) }
+    }else{
+      x.onerror = x.onload;
+    }
     if (/^POST/i.test(options.method)) {
       x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
     }
@@ -114,16 +138,35 @@ html, body {
 
     /* get all comics available on gocomics */
     for(var n = 0; n < comics.length; n++){
+      console.log(comics[n])
     	var comicpath = 'https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay
     	doCORSRequest({
         	method: 'GET',
         	url: comicpath
       		}, function printGoComics(result) {
 		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
-		      	var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
-		      	$("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+comictitle+'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
+            if(imgsrc) { 
+              var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
+              $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ comictitle +'</b></td></tr><tr><td><img src="' + imgsrc + '"></td></tr></table>');
+            }
 		    }
     	);
+    }
+
+    /* get all Comic Kingdom */
+    for(var n = 0; n < comicsKing.length; n++){
+      var pv_comicpath = 'http://comicskingdom.com/' + comicsKing[n] // can use date, but optional
+      doCORSRequest({
+          method: 'GET',
+          url: pv_comicpath
+          }, function printKingdomComics(king_result) {
+            var pv_imgsrc = $('img.buy-print-image', $.parseHTML(king_result)).attr('src');
+            var comictitle = $('div.comic-title', $.parseHTML(king_result)).html();
+            if(pv_imgsrc){
+              $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ comictitle +'</b></td></tr><tr><td><img src="' + pv_imgsrc + '"></td></tr></table>');
+            }
+        }
+      );
     }
 
     /* get Dilbert */
@@ -131,7 +174,7 @@ html, body {
     doCORSRequest({
           method: 'GET',
           url: dil_comicpath
-          }, function printGoComics(dil_result) {
+          }, function printDilComics(dil_result) {
             var dil_imgsrc = $('.img-comic', $.parseHTML(dil_result)).attr('src');
             $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ 'Dilbert' +'</b></td></tr><tr><td><img src="https:' + dil_imgsrc + '"></td></tr></table>');
         }
@@ -141,13 +184,13 @@ html, body {
     doCORSRequest({
           method: 'GET',
           url: bc_comicpath
-          }, function printGoComics(bc_result) {
+          }, function printBCComics(bc_result) {
             var bc_imgsrc = $('.entry-content p img', $.parseHTML(bc_result)).attr('src');
             $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ 'B.C.' +'</b></td></tr><tr><td><img src="https://johnhartstudios.com' + bc_imgsrc + '"></td></tr></table>');
         }
       );
     /* get Baby Blues */
-    var monthNames = {
+    /*var monthNames = {
       "01":'january', 
       '02':'february',
       '03':'march', 
@@ -169,18 +212,8 @@ html, body {
             console.log(bb_imgsrc);
             $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ 'Baby Blues' +'</b></td></tr><tr><td><img src="' + bb_imgsrc + '"></td></tr></table>');
         }
-      );
-    /* get Prince Valiant */
-    var pv_comicpath = 'http://comicskingdom.com/prince-valiant'
-    doCORSRequest({
-          method: 'GET',
-          url: pv_comicpath
-          }, function printGoComics(pv_result) {
-            var pv_imgsrc = $('a.buy-a-print-promo img', $.parseHTML(pv_result)).attr('src');
-            console.log(pv_imgsrc);
-            $("#bottom").append('<table style="display: inline-block; margin: 10px;"><tr><td style="text-align:left;"><b>'+ 'Prince Valiant' +'</b></td></tr><tr><td><img src="' + pv_imgsrc + '"></td></tr></table>');
-        }
-      );
+      );*/
+
   });
 </script>
 </body>
