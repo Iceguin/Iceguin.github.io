@@ -121,7 +121,7 @@
 				}
 				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
 					if(elem.nodeName.toUpperCase() == "IMG" || elem.nodeName.toUpperCase() == "BR" || elem.nodeName.toUpperCase() == "HR"){
-						errors.add( elem.nodeName.toUpperCase() + " tags cannot be associated with an attribute. Style the element type directly in your CSS or surround it with a wrapper." )
+						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper." )
 					}else{
 						warnings.add( "In older versions of the style plugin, [attr] tags will only be attached to DIV elements, not " + elem.nodeName.toUpperCase() )
 					}
@@ -218,7 +218,20 @@
 	<body>
 		<div class="grouping">
 			<label>Input your HTML code here:</label>
-			<textarea id="html_in"><div class="hmm">heck this</div></textarea>
+			<textarea id="html_in">
+<div class="stylinclass">
+	Click the <b>"Convert"</b> button below to try it!
+</div>
+
+<style>
+.stylinclass { 
+	color: black; 
+}
+
+.stylinclass b {
+	font-weight: bold;
+}
+</style></textarea>
 			<button onclick="convert()">Convert</button>
 		</div>
 
