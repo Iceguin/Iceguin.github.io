@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<script type="text/javascript">
+			var BCCode = "";
+			var errors = new Set();
+			var warnings = new Set();
+
+			function convert(){
+				BCCode = "[nospaces]";
+				warnings.clear();
+				errors.clear();
+				var inputText = $("#html_in").val();
+				parseHTMLCSS(inputText);
+				$("#bbc_out").val(BCCode)
+				$("#issues").html("");
+				if(errors.size > 0 || warnings.size > 0){
+					$("#issues").append("<b>ERRORS / WARNINGS:</b><br/>")
+				}
+				if(errors.size > 0){
+					$("#issues").append("<div style='color: red;'>" + Array.from(errors).join('<br/>') + "</div>")
+				}
+				if(warnings.size > 0){
+					$("#issues").append("<div style='color: orange;'>" + Array.from(warnings).join('<br/>') + "</div>")
+				}
+			}
+
+			function parseHTMLCSS(HTMLstring){
+				var DOMTree = $.parseHTML( HTMLstring )
+
+            	console.log(DOMTree);
+
+            	for(elemNum in DOMTree){
+            		HTMLtoBCCode(DOMTree[elemNum]);
+            	}
+			}
+
+			function HTMLtoBCCode(elem){
+				switch(elem.nodeName.toUpperCase()){
+        			case "STYLE": 
+        				BCCode = BCCode + '[div style="color:transparent;font:6px / 0px arial;"]'
+        				BCCode = BCCode + getCSSTags(elem.innerText);
+        				BCCode = BCCode + "[/div]"
+        				break;
+        			case "#TEXT":
+        				BCCode = BCCode + elem.wholeText;
+        				break;
+        			case "LINK":
+        				BCCode = BCCode + getLinkTag(elem.href);
+        				break;
+        			default:
+        				// assume it's something like div, i, b, etc.
+        				BCCode = BCCode + getBCCStartTag(elem)
+        				if(elem.childNodes.length > 0){
+        					for(var childElem = 0; childElem < elem.childNodes.length; childElem++){
+			            		HTMLtoBCCode(elem.childNodes[childElem]);
+			            	}
+        				}
+        				BCCode = BCCode + getBCCEndTag(elem)
+        		}
+			}
+
+			function getLinkTag(path){
+				if(path.indexOf("fonts.googleapis") >= 0 ){ // confirm google font call
+					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
+				}
+				
+				errors.add('The only external resource allowed from "link" tags is Google Fonts.');
+
+				return "";
+			}
+
+			function getBCCStartTag(elem){
+				tagText = "";
+				classes = "";
+				ids = "";
+				switch(elem.nodeName.toUpperCase()){
+					case "BODY":
+					case "HEAD":
+					case "HTML":
+						return "";
+					case "BR":
+						return "[break]";
+					case "MARQUEE":
+						tagText = tagText + "[move";
+						break;
+					// unsupported element types
+					case "LABEL":
+					case "INPUT":
+						errors.add( elem.nodeName.toUpperCase() + " is not a supported element type.");
+					default:
+						tagText = tagText + "[" + elem.nodeName.toLowerCase()
+				}
+				if(elem.attributes.length > 0){
+					for(var attr = 0; attr < elem.attributes.length; attr++){
+						switch(elem.attributes[attr].name.toUpperCase()){
+							case "CLASS":
+								classes = elem.attributes[attr].value;
+								break;
+							case "ID":
+								ids = elem.attributes[attr].value;
+								break;
+							case "":
+							default:
+								tagText = tagText + " " + elem.attributes[attr].name + "=" + '"' + elem.attributes[attr].value + '"';
+						}
+					}
+				}else{
+					if(elem.nodeName.toUpperCase() == "SPAN"){ 
+						warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, or i tags." ); 
+					}
+				}
+				tagText = tagText + "]"
+
+				if(classes != ""){
+					tagText = tagText + '[attr="class","' + classes + '"]'
+				}
+				if(ids != ""){
+					tagText = tagText + '[attr="id","' + ids + '"]'
+				}
+				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
+					if(elem.nodeName.toUpperCase() == "IMG" || elem.nodeName.toUpperCase() == "BR" || elem.nodeName.toUpperCase() == "HR"){
+						errors.add( elem.nodeName.toUpperCase() + " tags cannot be associated with an attribute. Style the element type directly in your CSS or surround it with a wrapper." )
+					}else{
+						warnings.add( "In older versions of the style plugin, [attr] tags will only be attached to DIV elements, not " + elem.nodeName.toUpperCase() )
+					}
+				}
+				
+				return tagText;
+			}
+
+			function getBCCEndTag(elem){
+				switch(elem.nodeName.toUpperCase()){
+					// types to ignore
+					case "BODY":
+					case "HEAD":
+					case "HTML":
+					// types with no end tag
+					case "BR":
+					case "IMG":
+					case "HR":
+						return "";
+					case "MARQUEE":
+						return "[/move]";
+					default:
+						return "[/" + elem.nodeName.toLowerCase() + "]"
+				}
+			}
+
+			function getCSSTags(css){
+				css = css.replace(/(\r\n|\n|\r)/gm," ").trim() // replace all newline variants
+				css = css.replace(/(\s+)/g," ").trim() // replace all duplicated spaces
+
+				var i = 0;
+				var lvl = 0;
+				var className = "";
+				var classStyle = "";
+				var nestedBrackets = "";
+				BBCCSS = ""
+				while( i < css.length ){
+					console.log(css[i])
+					if(css[i] == "{"){
+						lvl = lvl + 1;
+						if(lvl > 1){classStyle = classStyle + css[i];}
+					}else if(lvl == 0){
+						className = className + css[i];
+					}else if(css[i] == "}"){
+						lvl = lvl - 1;
+						if(lvl > 0){
+							classStyle = classStyle + css[i];
+						}else{
+							console.log(className.trim())
+							console.log(classStyle.indexOf("{"))
+							if(classStyle.indexOf("{") < 0 ){
+								BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
+								console.log(BBCCSS)
+								BBCCSS = BBCCSS + classStyle.trim();
+								BBCCSS = BBCCSS + "[/newclass]";
+							}else{
+								nestedBrackets = nestedBrackets + className.trim() + " {" + classStyle + "} "
+							}
+
+							className = "";
+							classStyle = "";
+						}
+					}else{
+						classStyle = classStyle + css[i];
+					}
+					i = i + 1;
+				}
+
+				if( nestedBrackets != "" ){
+					BBCCSS = BBCCSS + '\n[newclass="nullelem"]' + "} " + nestedBrackets.trim().substring(0,nestedBrackets.length-2) + "[/newclass]"
+				}
+				return BBCCSS;
+			}
+
+		</script>
+
+		<style>
+			body{
+				font: 12px Calibri, Arial, sans-serif;
+			}
+			textarea {
+				display: block;
+				box-sizing: border-box;
+				width: 100%;
+				height: 200px;
+			}
+			button {
+				font: bold 16px Calibri, Arial, sans-serif;
+				margin-top: 3px;
+			}
+			.grouping { margin-bottom: 20px; }
+		</style>
+	</head>
+	<body>
+		<div class="grouping">
+			<label>Input your HTML code here:</label>
+			<textarea id="html_in"><div class="hmm">heck this</div></textarea>
+			<button onclick="convert()">Convert</button>
+		</div>
+
+		<div class="grouping">
+			<label>Copy the ProBoards BBCode output from here:</label>
+			<textarea id="bbc_out"></textarea>
+		</div>
+
+		<div class="grouping">
+			<div id="issues"></div>
+		</div>
+
+		<div id="credits">
+			Hi, my name is <a href="http://pixel-perfect.boards.net/user/240">Iceguin</a> -- I make codes sometimes.
+			<br/>Backlog goals for this page include: BBCode-to-HTML/CSS support, in-post tab support, an actual page design instead of this bare-bones blandness
+		</div>
+	</body>
+</html>

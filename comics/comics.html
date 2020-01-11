@@ -155,7 +155,7 @@ img {
 
     /* get all Comic Kingdom */
     for(var n = 0; n < comicsKing.length; n++){
-      var pv_comicpath = 'http://comicskingdom.com/' + comicsKing[n] // can use date, but optional
+      var pv_comicpath = 'http://comicskingdom.com/' + comicsKing[n] + '/' + thisYear + '-' + thisMonth + '-' + thisDay; // can use date, but optional
       doCORSRequest({
           method: 'GET',
           url: pv_comicpath
