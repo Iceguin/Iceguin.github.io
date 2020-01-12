@@ -26,12 +26,9 @@
 				linkCount = 0;
 				//classesList.clear();
 
-				// Parse.
+				// Parse & write results.
 				var inputText = $("#html_in").val();
 				parseHTMLCSS(inputText);
-
-				// Display results.
-				waitForLinkProcessing(writeResults);
 			}
 
 			function writeResults(){
@@ -67,6 +64,7 @@
             	if(importedCSS != ""){
             		BCCode = BCCode + getCSSTags(importedCSS, true);
             	}
+            	writeResults();
 			}
 
 			function waitForLinkProcessing(func){
@@ -117,7 +115,6 @@
 				}else if(path.indexOf(".css") >= 0){
 					linkCount = linkCount + 1;
 					console.log(path);
-					console.log(path.trim().substring(0,5))
 					if(path.trim().substring(0,5) == "file:"){
 						path = "http:" + path.trim().substring(6);
 					}
