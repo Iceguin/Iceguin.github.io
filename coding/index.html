@@ -24,7 +24,6 @@
 				warnings.clear();
 				errors.clear();
 				linkCount = 0;
-				//classesList.clear();
 
 				// Parse & write results.
 				var inputText = $("#html_in").val();
@@ -38,10 +37,10 @@
 					$("#issues").append("<b>ERRORS / WARNINGS:</b><br/>")
 				}
 				if(errors.size > 0){
-					$("#issues").append("<div style='color: red;'>" + Array.from(errors).join('<br/>') + "</div>")
+					$("#issues").append("<div style='color: red;'>" + Array.from(errors).join('<br/><br/>') + "</div><br/>")
 				}
 				if(warnings.size > 0){
-					$("#issues").append("<div style='color: orange;'>" + Array.from(warnings).join('<br/>') + "</div>")
+					$("#issues").append("<div style='color: orange;'>" + Array.from(warnings).join('<br/><br/>') + "</div>")
 				}
 			}
 
@@ -55,25 +54,20 @@
             	}
 
             	// Place any classes from LINK imports at the bottom
-            	waitForLinkProcessing(appendProcessedLinkCSS);
+            	waitForLinkProcessing();
             	
-			}
-
-			function appendProcessedLinkCSS(){
-				console.log(importedCSS);
-            	if(importedCSS != ""){
-            		BCCode = BCCode + getCSSTags(importedCSS, true);
-            	}
-            	writeResults();
 			}
 
 			function waitForLinkProcessing(func){
 			    if(linkCount == 0){
-			        func();
-			    }
-			    else{
+			        console.log(importedCSS);
+	            	if(importedCSS != ""){
+	            		BCCode = '[div style="color: transparent; line-height: 0px;"]' + getCSSTags(importedCSS, true) + "[/div]" + BCCode;
+	            	}
+	            	writeResults();
+			    }else{
 			    	console.log(linkCount);
-			        setTimeout(waitForLinkProcessing(func), 10000);
+			        window.setTimeout(waitForLinkProcessing, 500);
 			    }
 			}
 
@@ -110,7 +104,6 @@
 
 			function getLinkTag(path){
 				if(path.indexOf("fonts.googleapis") >= 0 ){ // confirm google font call
-					warnings.add('Use of the google font tag requires Style Tag 1.1.0 or newer.');
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
 				}else if(path.indexOf(".css") >= 0){
 					linkCount = linkCount + 1;
@@ -120,9 +113,8 @@
 					}
 					$.get( path, function( css ) {
 					  importedCSS = importedCSS + "\n" + css;
-					  linkCount = linkCount - 1;
 					}).always(function() {
-					  alert( "finished" );
+					  linkCount = linkCount - 1;
 					});
 				}else{
 					errors.add('The only external resources allowed from "link" tags are .css files or Google Fonts.');
@@ -148,32 +140,25 @@
 					tagText = tagText + "[" + elem.nodeName.toLowerCase();
 				}
 
+				var anythingAttached = false;
 				if(elem.attributes.length > 0){
 					for(var attr = 0; attr < elem.attributes.length; attr++){
 						switch(elem.attributes[attr].name.toUpperCase()){
 							case "CLASS":
 								classes = elem.attributes[attr].value;
-								/*var words = classes.split(" ");
-								for(var word in words){
-									classesList.add("." + words[word].trim().toLowerCase())
-								}*/
 								break;
 							case "ID":
 								ids = elem.attributes[attr].value;
-								/*var words = ids.split(" ");
-								for(var word in words){
-									classesList.add("#" + words[word].trim().toLowerCase())
-								}*/
 								break;
 							case "":
 							default:
+								anythingAttached = true;
 								tagText = tagText + " " + elem.attributes[attr].name + "=" + '"' + elem.attributes[attr].value + '"';
 						}
 					}
-				}else{
-					if(elem.nodeName.toUpperCase() == "SPAN"){ 
-						warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, i tags, or u tags." ); 
-					}
+				}
+				if(elem.nodeName.toUpperCase() == "SPAN" && !anythingAttached){ 
+					warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, i tags, or u tags." ); 
 				}
 				tagText = tagText + "]"
 
@@ -187,7 +172,7 @@
 					if(tagsUnpaired.has(elem.nodeName.toUpperCase())){
 						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
 					}else if(tagsSupported.has(elem.nodeName.toUpperCase())){
-						warnings.add( "In older versions of the style plugin, [attr] tags will only be attached to DIV elements, not " + elem.nodeName.toUpperCase() )
+						warnings.add( "<b>Style Tag pluggin version 2.1.0</b> or later is required for [attr] tags to attach to " + elem.nodeName.toUpperCase() + " elements. Otherwise they will only attach to DIVs." )
 					}
 				}
 				
@@ -237,15 +222,15 @@
 						if(lvl > 0){
 							classStyle = classStyle + css[i];
 						}else{
-							console.log(className.trim());
-							console.log((className + " ").replace(/(:+[^\s,]+[\s,]+)/g," ").trim());
+							/*console.log(className.trim());
+							console.log((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim());
 							if(className.trim().substring(0,1) != "@"){
-								console.log($(DOMTree).find((className.trim() + " ").replace(/(:+[^\s,]+)[\s,]+/g," ")).length)
-							}//.replace(/(\s+)/g," ")
+								console.log($(DOMTree).find((className.trim() + " ").replace(/(:+[^\s,~<>]+)/g," ")).length)
+							}*/
 
 							// Convert classes if needed.
-							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,]+[\s,]+)/g," ").trim()).length > 0 ){
-								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@"){
+							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim()).length > 0 ){
+								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@" && className.indexOf("[") < 0){
 									BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
 									BBCCSS = BBCCSS + classStyle.trim();
 									BBCCSS = BBCCSS + "[/newclass]";
