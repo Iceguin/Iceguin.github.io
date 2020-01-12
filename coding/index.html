@@ -4,22 +4,37 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<script type="text/javascript">
 
-			const tagsToIgnore = new Set(["BODY", "HEAD", "HTML"]);
-			const tagsSupported = new Set(["A", "B", "BIG", "BLOCKQUOTE", "BR", "CENTER", "CODE", "DIV", "EM","FONT", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "I", "IMG", "LI", "MARQUEE", "OL", "P", "PRE", "S", "SPAN", "STRIKE", "STRONG","SUB","SUP","TABLE","TBODY","TD","TH","TR","U","UL"]);
-			const html5Warning = new Set(["BIG","FONT","MARQUEE","STRIKE","TT"]); // Supported by PB, but not HTML5
-			const tagsToRename = {"BR":"break"} //BBCode syntax is different
-			const tagsUnpaired = new Set(["IMG", "BR", "HR"]);
+			const tagsToIgnore = new Set(["BODY", "HEAD", "HTML"]); // Shouldn't be used in templates.
+			const tagsSupported = new Set(["A", "B", "BIG", "BLOCKQUOTE", "BR", "CENTER", "CODE", "DIV", "EM","FONT", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "I", "IMG", "LI", "MARQUEE", "OL", "P", "PRE", "S", "SPAN", "STRIKE", "STRONG","SUB","SUP","TABLE","TBODY","TD","TH","TR","U","UL"]); // Supported by PB.
+			const html5Warning = new Set(["BIG","FONT","MARQUEE","STRIKE","TT"]); // Supported by PB, but not HTML5.
+			const tagsToRename = {"BR":"break"} // BBCode syntax is different.
+			const tagsUnpaired = new Set(["IMG", "BR", "HR"]); // Don't have end tags.
 
+			var DOMTree = $.parseHTML( "<b></b>" );
 			var BCCode = "";
+			var importedCSS = "";
+			var linkCount = 0;
 			var errors = new Set();
 			var warnings = new Set();
 
 			function convert(){
+				// Clear globals from previous conversions.
 				BCCode = "[nospaces]";
+				importedCSS = "";
 				warnings.clear();
 				errors.clear();
+				linkCount = 0;
+				//classesList.clear();
+
+				// Parse.
 				var inputText = $("#html_in").val();
 				parseHTMLCSS(inputText);
+
+				// Display results.
+				waitForLinkProcessing(writeResults);
+			}
+
+			function writeResults(){
 				$("#bbc_out").val(BCCode)
 				$("#issues").html("");
 				if(errors.size > 0 || warnings.size > 0){
@@ -34,19 +49,40 @@
 			}
 
 			function parseHTMLCSS(HTMLstring){
-				var DOMTree = $.parseHTML( HTMLstring )
+				DOMTree = $.parseHTML( HTMLstring )
 
             	console.log(DOMTree);
 
             	for(elemNum in DOMTree){
             		HTMLtoBCCode(DOMTree[elemNum]);
             	}
+
+            	// Place any classes from LINK imports at the bottom
+            	waitForLinkProcessing(appendProcessedLinkCSS);
+            	
+			}
+
+			function appendProcessedLinkCSS(){
+				console.log(importedCSS);
+            	if(importedCSS != ""){
+            		BCCode = BCCode + getCSSTags(importedCSS, true);
+            	}
+			}
+
+			function waitForLinkProcessing(func){
+			    if(linkCount == 0){
+			        func();
+			    }
+			    else{
+			    	console.log(linkCount);
+			        setTimeout(waitForLinkProcessing(func), 10000);
+			    }
 			}
 
 			function HTMLtoBCCode(elem){
 				switch(elem.nodeName.toUpperCase()){
         			case "STYLE": 
-        				BCCode = BCCode + '[div style="color: transparent; font: 6px / 0px arial;"]'
+        				BCCode = BCCode + '[div style="color: transparent; line-height: 0px;"]'
         				BCCode = BCCode + getCSSTags(elem.innerText);
         				BCCode = BCCode + "[/div]"
         				break;
@@ -76,19 +112,24 @@
 
 			function getLinkTag(path){
 				if(path.indexOf("fonts.googleapis") >= 0 ){ // confirm google font call
+					warnings.add('Use of the google font tag requires Style Tag 1.1.0 or newer.');
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
 				}else if(path.indexOf(".css") >= 0){
+					linkCount = linkCount + 1;
 					console.log(path);
 					console.log(path.trim().substring(0,5))
 					if(path.trim().substring(0,5) == "file:"){
 						path = "http:" + path.trim().substring(6);
 					}
 					$.get( path, function( css ) {
-					  console.log(css);
+					  importedCSS = importedCSS + "\n" + css;
+					  linkCount = linkCount - 1;
+					}).always(function() {
+					  alert( "finished" );
 					});
+				}else{
+					errors.add('The only external resources allowed from "link" tags are .css files or Google Fonts.');
 				}
-				
-				errors.add('The only external resources allowed from "link" tags are CSS documents or Google Fonts.');
 
 				return "";
 			}
@@ -115,9 +156,17 @@
 						switch(elem.attributes[attr].name.toUpperCase()){
 							case "CLASS":
 								classes = elem.attributes[attr].value;
+								/*var words = classes.split(" ");
+								for(var word in words){
+									classesList.add("." + words[word].trim().toLowerCase())
+								}*/
 								break;
 							case "ID":
 								ids = elem.attributes[attr].value;
+								/*var words = ids.split(" ");
+								for(var word in words){
+									classesList.add("#" + words[word].trim().toLowerCase())
+								}*/
 								break;
 							case "":
 							default:
@@ -157,6 +206,10 @@
 			}
 
 			function getCSSTags(css){
+				return getCSSTags(css, false);
+			}
+
+			function getCSSTags(css, isSelective){
 				css = css.replace(/(\r\n|\n|\r)/gm," ").trim() // replace all newline variants
 				css = css.replace(/(\s+)/g," ").trim() // replace all duplicated spaces
 
@@ -165,24 +218,43 @@
 				var className = "";
 				var classStyle = "";
 				var nestedBrackets = "";
+				var stringStarter = "";
 				BBCCSS = ""
 				while( i < css.length ){
+					// Check if currently reading a quoted string
+					if(stringStarter == "" && ( css[i] == "'" || css[i] == '"' ) ){
+						stringStarter = css[i];
+					}else if(stringStarter != ""){
+						if(css[i] == stringStarter){
+							stringStarter = "";
+						}
+					}
+
 					if(css[i] == "{"){
-						lvl = lvl + 1;
+						if(stringStarter == ""){ lvl = lvl + 1; }
 						if(lvl > 1){classStyle = classStyle + css[i];}
 					}else if(lvl == 0){
 						className = className + css[i];
 					}else if(css[i] == "}"){
-						lvl = lvl - 1;
+						if(stringStarter == ""){ lvl = lvl - 1; }
 						if(lvl > 0){
 							classStyle = classStyle + css[i];
 						}else{
-							if(classStyle.indexOf("{") < 0 ){
-								BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
-								BBCCSS = BBCCSS + classStyle.trim();
-								BBCCSS = BBCCSS + "[/newclass]";
-							}else{
-								nestedBrackets = nestedBrackets + className.trim() + " {" + classStyle + "} "
+							console.log(className.trim());
+							console.log((className + " ").replace(/(:+[^\s,]+[\s,]+)/g," ").trim());
+							if(className.trim().substring(0,1) != "@"){
+								console.log($(DOMTree).find((className.trim() + " ").replace(/(:+[^\s,]+)[\s,]+/g," ")).length)
+							}//.replace(/(\s+)/g," ")
+
+							// Convert classes if needed.
+							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,]+[\s,]+)/g," ").trim()).length > 0 ){
+								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@"){
+									BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
+									BBCCSS = BBCCSS + classStyle.trim();
+									BBCCSS = BBCCSS + "[/newclass]";
+								}else{
+									nestedBrackets = nestedBrackets + className.trim() + " {" + classStyle + "} "
+								}
 							}
 
 							className = "";
@@ -317,7 +389,7 @@
 
 		<div id="credits">
 			Hi, my name is <a href="http://pixel-perfect.boards.net/user/240">Iceguin</a> -- I make codes sometimes.
-			<br/>Backlog goals for this page include: BBCode-to-HTML/CSS support & in-post tab support
+			<br/>This page does not currently convert tabbed templates ;n;
 		</div>
 	</body>
 </html>
