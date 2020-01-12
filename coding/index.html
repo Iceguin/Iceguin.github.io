@@ -3,6 +3,13 @@
 	<head>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<script type="text/javascript">
+
+			const tagsToIgnore = new Set(["BODY", "HEAD", "HTML"]);
+			const tagsSupported = new Set(["A", "B", "BIG", "BLOCKQUOTE", "BR", "CENTER", "CODE", "DIV", "EM","FONT", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "I", "IMG", "LI", "MARQUEE", "OL", "P", "PRE", "S", "SPAN", "STRIKE", "STRONG","SUB","SUP","TABLE","TBODY","TD","TH","TR","U","UL"]);
+			const html5Warning = new Set(["BIG","FONT","MARQUEE","STRIKE","TT"]); // Supported by PB, but not HTML5
+			const tagsToRename = {"BR":"break"} //BBCode syntax is different
+			const tagsUnpaired = new Set(["IMG", "BR", "HR"]);
+
 			var BCCode = "";
 			var errors = new Set();
 			var warnings = new Set();
@@ -39,18 +46,20 @@
 			function HTMLtoBCCode(elem){
 				switch(elem.nodeName.toUpperCase()){
         			case "STYLE": 
-        				BCCode = BCCode + '[div style="color:transparent;font:6px / 0px arial;"]'
+        				BCCode = BCCode + '[div style="color: transparent; font: 6px / 0px arial;"]'
         				BCCode = BCCode + getCSSTags(elem.innerText);
         				BCCode = BCCode + "[/div]"
         				break;
         			case "#TEXT":
         				BCCode = BCCode + elem.wholeText;
         				break;
+        			case "#COMMENT":
+        				// do nothing
+        				break;
         			case "LINK":
         				BCCode = BCCode + getLinkTag(elem.href);
         				break;
         			default:
-        				// assume it's something like div, i, b, etc.
         				BCCode = BCCode + getBCCStartTag(elem)
         				if(elem.childNodes.length > 0){
         					for(var childElem = 0; childElem < elem.childNodes.length; childElem++){
@@ -58,15 +67,28 @@
 			            	}
         				}
         				BCCode = BCCode + getBCCEndTag(elem)
+
+        				if(!tagsSupported.has(elem.nodeName.toUpperCase())){
+        					errors.add( elem.nodeName.toUpperCase() + " is not a supported element type.");
+        				}
         		}
 			}
 
 			function getLinkTag(path){
 				if(path.indexOf("fonts.googleapis") >= 0 ){ // confirm google font call
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
+				}else if(path.indexOf(".css") >= 0){
+					console.log(path);
+					console.log(path.trim().substring(0,5))
+					if(path.trim().substring(0,5) == "file:"){
+						path = "http:" + path.trim().substring(6);
+					}
+					$.get( path, function( css ) {
+					  console.log(css);
+					});
 				}
 				
-				errors.add('The only external resource allowed from "link" tags is Google Fonts.');
+				errors.add('The only external resources allowed from "link" tags are CSS documents or Google Fonts.');
 
 				return "";
 			}
@@ -75,23 +97,19 @@
 				tagText = "";
 				classes = "";
 				ids = "";
-				switch(elem.nodeName.toUpperCase()){
-					case "BODY":
-					case "HEAD":
-					case "HTML":
-						return "";
-					case "BR":
-						return "[break]";
-					case "MARQUEE":
-						tagText = tagText + "[move";
-						break;
-					// unsupported element types
-					case "LABEL":
-					case "INPUT":
-						errors.add( elem.nodeName.toUpperCase() + " is not a supported element type.");
-					default:
-						tagText = tagText + "[" + elem.nodeName.toLowerCase()
+				
+				if(tagsToIgnore.has(elem.nodeName.toUpperCase())){
+					return "";
+				}else if(html5Warning.has(elem.nodeName.toUpperCase())){
+					warnings.add( elem.nodeName.toUpperCase() + ' tags are supported by the PB editor, but are <a href="https://caniuse.com/#search=deprecated%20HTML%20elements">not formally supported</a> by HTML5');
 				}
+
+				if(elem.nodeName.toUpperCase() in tagsToRename){
+					tagText = tagText + "[" + tagsToRename[elem.nodeName.toUpperCase()];
+				}else{
+					tagText = tagText + "[" + elem.nodeName.toLowerCase();
+				}
+
 				if(elem.attributes.length > 0){
 					for(var attr = 0; attr < elem.attributes.length; attr++){
 						switch(elem.attributes[attr].name.toUpperCase()){
@@ -108,7 +126,7 @@
 					}
 				}else{
 					if(elem.nodeName.toUpperCase() == "SPAN"){ 
-						warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, or i tags." ); 
+						warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, i tags, or u tags." ); 
 					}
 				}
 				tagText = tagText + "]"
@@ -120,9 +138,9 @@
 					tagText = tagText + '[attr="id","' + ids + '"]'
 				}
 				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
-					if(elem.nodeName.toUpperCase() == "IMG" || elem.nodeName.toUpperCase() == "BR" || elem.nodeName.toUpperCase() == "HR"){
-						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper." )
-					}else{
+					if(tagsUnpaired.has(elem.nodeName.toUpperCase())){
+						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
+					}else if(tagsSupported.has(elem.nodeName.toUpperCase())){
 						warnings.add( "In older versions of the style plugin, [attr] tags will only be attached to DIV elements, not " + elem.nodeName.toUpperCase() )
 					}
 				}
@@ -131,20 +149,10 @@
 			}
 
 			function getBCCEndTag(elem){
-				switch(elem.nodeName.toUpperCase()){
-					// types to ignore
-					case "BODY":
-					case "HEAD":
-					case "HTML":
-					// types with no end tag
-					case "BR":
-					case "IMG":
-					case "HR":
-						return "";
-					case "MARQUEE":
-						return "[/move]";
-					default:
-						return "[/" + elem.nodeName.toLowerCase() + "]"
+				if(tagsToIgnore.has(elem.nodeName.toUpperCase()) || tagsUnpaired.has(elem.nodeName.toUpperCase())){
+					return "";
+				}else{
+					return "[/" + elem.nodeName.toLowerCase() + "]"
 				}
 			}
 
@@ -159,7 +167,6 @@
 				var nestedBrackets = "";
 				BBCCSS = ""
 				while( i < css.length ){
-					console.log(css[i])
 					if(css[i] == "{"){
 						lvl = lvl + 1;
 						if(lvl > 1){classStyle = classStyle + css[i];}
@@ -170,11 +177,8 @@
 						if(lvl > 0){
 							classStyle = classStyle + css[i];
 						}else{
-							console.log(className.trim())
-							console.log(classStyle.indexOf("{"))
 							if(classStyle.indexOf("{") < 0 ){
 								BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
-								console.log(BBCCSS)
 								BBCCSS = BBCCSS + classStyle.trim();
 								BBCCSS = BBCCSS + "[/newclass]";
 							}else{
@@ -200,22 +204,89 @@
 
 		<style>
 			body{
+				background-color: #ebedf0;
+				color: #313131;
 				font: 12px Calibri, Arial, sans-serif;
+				margin: 0px;
+				padding: 0px;
+			}
+			label {
+				font-weight: bold;
 			}
 			textarea {
+				border: 1px solid #cdcdcd;
+				border-radius: 5px;
+				resize: none;
 				display: block;
 				box-sizing: border-box;
 				width: 100%;
 				height: 200px;
+				padding: 15px;
+				font: 12px Courier New, Courier, monospace;
 			}
 			button {
-				font: bold 16px Calibri, Arial, sans-serif;
 				margin-top: 3px;
+				cursor: pointer;
+				box-shadow: 0px 1px 0px 0px #f0f7fa;
+				background:linear-gradient(to bottom, #33bdef 5%, #019ad2 100%);
+				background-color:#33bdef;
+				border-radius:6px;
+				border:1px solid #057fd0;
+				display:inline-block;
+				cursor:pointer;
+				color:#ffffff;
+				font-family:Arial;
+				font-size:15px;
+				font-weight:bold;
+				padding:5px 23px;
+				text-decoration:none;
+				text-shadow:0px -1px 0px #5b6178;
 			}
-			.grouping { margin-bottom: 20px; }
+			button:hover {
+				background:linear-gradient(to bottom, #019ad2 5%, #33bdef 100%);
+				background-color:#019ad2;
+			}
+			button:active {
+				position:relative;
+				top:1px;
+			}
+			.grouping { 
+				margin: 0px 30px;
+				margin-bottom: 20px; 
+			}
+			#banner {
+				background-color: rgba(21,21,23,.95);
+				color: #fff;
+				padding: 10px;
+				margin-bottom: 10px;
+			}
+			#banner h1, #banner h2 {
+				margin: 0px;
+			}
+			#banner h1 {
+				font: 800 2em / 1.2em Calibri, Arial, sans-serif;
+			}
+			#banner h2 {
+				font: 1.2em / 1em Calibri, Arial, sans-serif;
+			}
+
+			#credits {
+				margin: 0px 10px;
+				font-size: 10px;
+				letter-spacing: 1px;
+			}
+			#credits a {
+				text-decoration: none;
+				color: #79ade0;
+			}
 		</style>
 	</head>
 	<body>
+		<div id="banner">
+			<h1>[ BBCode Converter ]</h1>
+			<h2>Converts HTML & CSS to ProBoards-friendly BBCode</h2>
+		</div>
+
 		<div class="grouping">
 			<label>Input your HTML code here:</label>
 			<textarea id="html_in">
@@ -232,7 +303,7 @@
 	font-weight: bold;
 }
 </style></textarea>
-			<button onclick="convert()">Convert</button>
+			<button onclick="convert()">CONVERT!</button>
 		</div>
 
 		<div class="grouping">
@@ -246,7 +317,7 @@
 
 		<div id="credits">
 			Hi, my name is <a href="http://pixel-perfect.boards.net/user/240">Iceguin</a> -- I make codes sometimes.
-			<br/>Backlog goals for this page include: BBCode-to-HTML/CSS support, in-post tab support, an actual page design instead of this bare-bones blandness
+			<br/>Backlog goals for this page include: BBCode-to-HTML/CSS support & in-post tab support
 		</div>
 	</body>
 </html>
