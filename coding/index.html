@@ -9,13 +9,16 @@
 			const html5Warning = new Set(["BIG","FONT","MARQUEE","STRIKE","TT"]); // Supported by PB, but not HTML5.
 			const tagsToRename = {"BR":"break"} // BBCode syntax is different.
 			const tagsUnpaired = new Set(["IMG", "BR", "HR"]); // Don't have end tags.
+			const useDivSpanFix = '[newclass="div.span"]display: inline-block;[/newclass]'
 
 			var DOMTree = $.parseHTML( "<b></b>" );
 			var BCCode = "";
 			var importedCSS = "";
-			var linkCount = 0;
+			var CSSBlocks = {}
+			var linkCount = 0; // Number of external links currently loading -- must be 0 before writing
 			var errors = new Set();
 			var warnings = new Set();
+			var useDivSpan = false;
 
 			function convert(){
 				// Clear globals from previous conversions.
@@ -24,6 +27,8 @@
 				warnings.clear();
 				errors.clear();
 				linkCount = 0;
+				useDivSpan = false;
+				CSSBlocks = {};
 
 				// Parse & write results.
 				var inputText = $("#html_in").val();
@@ -49,11 +54,22 @@
 
             	console.log(DOMTree);
 
+            	// Parse HTML elements, identify CSS
             	for(elemNum in DOMTree){
             		HTMLtoBCCode(DOMTree[elemNum]);
             	}
 
-            	// Place any classes from LINK imports at the bottom
+            	// Parse CSS
+            	for(blockID in CSSBlocks){
+            		console.log(blockID);
+            		var newCSSBlock = '[div style="color: transparent; line-height: 0px;"]';
+            		newCSSBlock = newCSSBlock + getCSSTags(CSSBlocks[blockID]);
+            		newCSSBlock = newCSSBlock + "[/div]";
+            		BCCode = BCCode.replace(blockID, newCSSBlock)
+            	}
+            	if(useDivSpan){ BCCode = BCCode + useDivSpanFix }
+
+            	// Place any classes from LINK imports at the top
             	waitForLinkProcessing();
             	
 			}
@@ -67,16 +83,16 @@
 	            	writeResults();
 			    }else{
 			    	console.log(linkCount);
-			        window.setTimeout(waitForLinkProcessing, 500);
+			        window.setTimeout(waitForLinkProcessing, 250);
 			    }
 			}
 
 			function HTMLtoBCCode(elem){
 				switch(elem.nodeName.toUpperCase()){
         			case "STYLE": 
-        				BCCode = BCCode + '[div style="color: transparent; line-height: 0px;"]'
-        				BCCode = BCCode + getCSSTags(elem.innerText);
-        				BCCode = BCCode + "[/div]"
+        				var blockID = "XCSSLOCK-" + (Object.keys(CSSBlocks).length + 1) + "X";
+        				BCCode = BCCode + blockID 
+        				CSSBlocks[blockID] = elem.innerText;
         				break;
         			case "#TEXT":
         				BCCode = BCCode + elem.wholeText;
@@ -113,6 +129,7 @@
 					}
 					$.get( path, function( css ) {
 					  importedCSS = importedCSS + "\n" + css;
+					  warnings.add('External resources from "link" tags are not supported, so the converter extracted the classes that are being used from ' + path);
 					}).always(function() {
 					  linkCount = linkCount - 1;
 					});
@@ -140,25 +157,29 @@
 					tagText = tagText + "[" + elem.nodeName.toLowerCase();
 				}
 
-				var anythingAttached = false;
+				var styleAttached = false;
 				if(elem.attributes.length > 0){
 					for(var attr = 0; attr < elem.attributes.length; attr++){
 						switch(elem.attributes[attr].name.toUpperCase()){
 							case "CLASS":
-								classes = elem.attributes[attr].value;
+								classes = elem.attributes[attr].value.trim();
 								break;
 							case "ID":
 								ids = elem.attributes[attr].value;
 								break;
-							case "":
+							case "STYLE":
+								styleAttached = true;
 							default:
-								anythingAttached = true;
 								tagText = tagText + " " + elem.attributes[attr].name + "=" + '"' + elem.attributes[attr].value + '"';
 						}
 					}
 				}
-				if(elem.nodeName.toUpperCase() == "SPAN" && !anythingAttached){ 
-					warnings.add( elem.nodeName.toUpperCase() + " tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. Try changing them to divs styled as inline-block, b tags, i tags, or u tags." ); 
+				if(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached){ 
+					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has changed them to DIVs with the class .span' ); 
+					useDivSpan = true;
+					tagText = "[div" + tagText.substring(elem.nodeName.length + 1);
+					classes = (classes + " span").trim();
+					elem.nodeName = "DIV";
 				}
 				tagText = tagText + "]"
 
@@ -171,7 +192,7 @@
 				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
 					if(tagsUnpaired.has(elem.nodeName.toUpperCase())){
 						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
-					}else if(tagsSupported.has(elem.nodeName.toUpperCase())){
+					}else if(tagsSupported.has(elem.nodeName.toUpperCase()) && !(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached) ){
 						warnings.add( "<b>Style Tag pluggin version 2.1.0</b> or later is required for [attr] tags to attach to " + elem.nodeName.toUpperCase() + " elements. Otherwise they will only attach to DIVs." )
 					}
 				}
@@ -183,7 +204,12 @@
 				if(tagsToIgnore.has(elem.nodeName.toUpperCase()) || tagsUnpaired.has(elem.nodeName.toUpperCase())){
 					return "";
 				}else{
-					return "[/" + elem.nodeName.toLowerCase() + "]"
+					if(elem.nodeName.toUpperCase() == "SPAN" && elem.style.cssText == ""){
+						// End tag fix for SPAN tags disappearing on quote/edit.
+						return "[/div]"
+					}else{
+						return "[/" + elem.nodeName.toLowerCase() + "]"
+					}
 				}
 			}
 
@@ -212,6 +238,7 @@
 						}
 					}
 
+					// Logic based on current character & level of {} tree
 					if(css[i] == "{"){
 						if(stringStarter == ""){ lvl = lvl + 1; }
 						if(lvl > 1){classStyle = classStyle + css[i];}
@@ -230,6 +257,15 @@
 
 							// Convert classes if needed.
 							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim()).length > 0 ){
+								if(useDivSpan && (/\bspan\b/gi).test(className.toUpperCase()) ){
+									// Duplicate this class for div.span as well as span
+									var selectors = className.toLowerCase().split(",");
+									for(selector in selectors){
+										if((/\bspan\b/gi).test(selectors[selector])){
+											className = className + "," + className.replace(/\bspan\b/gi,"div.span")
+										}
+									}
+								}
 								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@" && className.indexOf("[") < 0){
 									BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
 									BBCCSS = BBCCSS + classStyle.trim();
