@@ -16,7 +16,7 @@
 
 			var DOMTree = $.parseHTML( $("#html_in").val() );
 			var BCCode = "";
-			var importedCSS = "";
+			var importedCSS = {};
 			var CSSBlocks = {}
 			var linkCount = 0; // Number of external links currently loading -- must be 0 before writing
 			var errors = new Set();
@@ -28,7 +28,7 @@
 			function convert(){
 				// Clear globals from previous conversions.
 				BCCode = "[nospaces]";
-				importedCSS = "";
+				importedCSS = {};
 				warnings.clear();
 				errors.clear();
 				linkCount = 0;
@@ -96,8 +96,10 @@
 			function waitForLinkProcessing(func){
 			    if(linkCount == 0){
 			        //console.log(importedCSS);
-	            	if(importedCSS != ""){
-	            		BCCode = '[div style="color: transparent; line-height: 0px;"]' + getCSSTags(importedCSS, true) + "[/div]" + BCCode;
+	            	if(Object.keys(importedCSS).length > 0){
+	            		for(var css in importedCSS){
+	            			BCCode = '[div style="color: transparent; line-height: 0px;"]' + getCSSTags(importedCSS[css],css , true) + "[/div]" + BCCode;
+	            		}
 	            	}
 	            	writeResults();
 			    }else{
@@ -142,6 +144,10 @@
 			}
 
 			function getLinkTag(path){
+				return getLinkTag(path, "");
+			}
+
+			function getLinkTag(path, parentSource){
 				if(path.indexOf("fonts.googleapis") >= 0 ){ // confirm google font call
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
 				}else if(path.indexOf(".css") >= 0){
@@ -149,9 +155,11 @@
 					//console.log(path);
 					if(path.trim().substring(0,5) == "file:"){
 						path = "http:" + path.trim().substring(6);
+					}else if( path.trim().substring(0,2) == ".." ){
+						path = parentSource + path.trim().substring(3)
 					}
 					$.get( path, function( css ) {
-					  importedCSS = importedCSS + "\n" + css;
+					  importedCSS[path] = css;
 					  warnings.add('External resources from "link" tags or @import rules are not supported, so the converter extracted the fonts and CSS styles that are being used from ' + path);
 					}).always(function() {
 					  linkCount = linkCount - 1;
@@ -198,11 +206,7 @@
 					}
 				}
 				if(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached){ 
-					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has added a style that ProBoards will not read.' ); 
-					/*useDivSpan = true;
-					tagText = "[div" + tagText.substring(elem.nodeName.length + 1);
-					classes = (classes + " span").trim();
-					elem.nodeName = "DIV";*/
+					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has added a style that ProBoards will not display as HTML.' ); 
 					tagText = tagText + ' style="top: auto;"'
 				}
 				tagText = tagText + "]"
@@ -246,10 +250,11 @@
 			}
 
 			function getCSSTags(css){
-				return getCSSTags(css, false);
+				return getCSSTags(css, "", false);
 			}
 
-			function getCSSTags(css, isSelective){
+			function getCSSTags(css, sourcePath, isSelective){
+
 				css = css.replace(/(\r\n|\n|\r)/gm," ").trim() // replace all newline variants
 				css = css.replace(/\/\*[^*]*\*+([^\/*][^*]*\*+)*\//gm," ").trim() // replace all css comments /* */
 				css = css.replace(/(\s+)/g," ").trim() // replace all duplicated spaces
@@ -282,7 +287,7 @@
 							if((inputRule).test(className)){
 								// This is an import
 								//console.log(className.match(inputRule)[1])
-								BCCode = BCCode + getLinkTag(className.match(inputRule)[1])
+								BCCode = BCCode + getLinkTag(className.match(inputRule)[1], sourcePath)
 							}
 							className = "";
 						}else{
@@ -319,6 +324,19 @@
 									if(className.indexOf(">") >= 0){
 										errors.add('The ">" selector can ONLY be entered into the "newclass" start tag, but characters such as "[" or "]" can only be in the body of the newclass tags. These selectors cannot be combined.')
 									}
+									var urlRule = /(?:url\s*\()+\s*['"]?([^'"]*)['"]?\s*\)?/gi;
+									if(urlRule.test(classStyle) && sourcePath != ""){
+										var parentPathRule = /[^\/]+\/+[^\/]+$/
+										var currentPathRule = /[^\/]+$/
+										var matches = classStyle.match(urlRule);
+										console.log(classStyle)
+										for( url in matches){
+											var replacement = matches[url].replace("../",sourcePath.replace(parentPathRule,""));
+											replacement = replacement.replace("./",sourcePath.replace(currentPathRule,""));
+											classStyle = classStyle.replace(matches[url], replacement);
+										}
+									}
+
 									nestedBrackets = nestedBrackets + className.trim() + " {" + classStyle + "} "
 								}
 							}
