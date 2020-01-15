@@ -8,17 +8,22 @@
 			const tagsSupported = new Set(["A", "B", "BIG", "BLOCKQUOTE", "BR", "CENTER", "CODE", "DIV", "EM","FONT", "H1", "H2", "H3", "H4", "H5", "H6", "HR", "I", "IMG", "LI", "MARQUEE", "OL", "P", "PRE", "S", "SPAN", "STRIKE", "STRONG","SUB","SUP","TABLE","TBODY","TD","TH","TR","U","UL"]); // Supported by PB.
 			const html5Warning = new Set(["BIG","FONT","MARQUEE","STRIKE","TT"]); // Supported by PB, but not HTML5.
 			const tagsToRename = {"BR":"break"} // BBCode syntax is different.
-			const tagsUnpaired = new Set(["IMG", "BR", "HR"]); // Don't have end tags.
-			const useDivSpanFix = '[newclass="div.span"]display: inline-block;[/newclass]'
+			const HTMLillegal = new Set(["BREAK","MOVE","LIST"]);
+			const tagsUnpaired = new Set(["IMG", "BR", "HR", "BREAK"]); // Don't have end tags.
+			const tagsUnattachable = new Set(["TABLE", "TR"]);
+			//const useDivSpanFix = '[newclass="div.span"]display: inline;[/newclass]'
+			const useImgWrapCssFix = 'width: inherit; height: inherit; max-width: inherit; max-height: inherit; min-width: inherit; min-height: inherit; border-radius: inherit;'
 
-			var DOMTree = $.parseHTML( "<b></b>" );
+			var DOMTree = $.parseHTML( $("#html_in").val() );
 			var BCCode = "";
 			var importedCSS = "";
 			var CSSBlocks = {}
 			var linkCount = 0; // Number of external links currently loading -- must be 0 before writing
 			var errors = new Set();
 			var warnings = new Set();
-			var useDivSpan = false;
+			//var useDivSpan = false;
+			var errors = new Set();
+			var CSSFixes = {}
 
 			function convert(){
 				// Clear globals from previous conversions.
@@ -27,8 +32,9 @@
 				warnings.clear();
 				errors.clear();
 				linkCount = 0;
-				useDivSpan = false;
+				//useDivSpan = false;
 				CSSBlocks = {};
+				CSSFixes = {};
 
 				// Parse & write results.
 				var inputText = $("#html_in").val();
@@ -61,13 +67,26 @@
 
             	// Parse CSS
             	for(blockID in CSSBlocks){
-            		console.log(blockID);
             		var newCSSBlock = '[div style="color: transparent; line-height: 0px;"]';
             		newCSSBlock = newCSSBlock + getCSSTags(CSSBlocks[blockID]);
             		newCSSBlock = newCSSBlock + "[/div]";
             		BCCode = BCCode.replace(blockID, newCSSBlock)
             	}
-            	if(useDivSpan){ BCCode = BCCode + useDivSpanFix }
+            	//if(useDivSpan){ BCCode = useDivSpanFix + BCCode }
+
+            	var imgFixName = "";
+            	if(CSSFixes.img){
+            		console.log(CSSFixes.img)
+            		var imgFixName = "";
+            		var imgClasses = CSSFixes.img.split(",")
+            		for(selector in imgClasses){
+	        			if(imgFixName != ""){ imgFixName = imgFixName + ","; }
+	        			imgFixName = imgFixName + imgClasses[selector].replace(/(\s+)/g,"") + " img"
+	        		}
+            		
+            	}
+            	if(imgFixName != ""){
+            		BCCode = '[newclass=' + imgFixName + ']' + useImgWrapCssFix + '[/newclass]' + BCCode}
 
             	// Place any classes from LINK imports at the top
             	waitForLinkProcessing();
@@ -76,13 +95,13 @@
 
 			function waitForLinkProcessing(func){
 			    if(linkCount == 0){
-			        console.log(importedCSS);
+			        //console.log(importedCSS);
 	            	if(importedCSS != ""){
 	            		BCCode = '[div style="color: transparent; line-height: 0px;"]' + getCSSTags(importedCSS, true) + "[/div]" + BCCode;
 	            	}
 	            	writeResults();
 			    }else{
-			    	console.log(linkCount);
+			    	//console.log(linkCount);
 			        window.setTimeout(waitForLinkProcessing, 250);
 			    }
 			}
@@ -113,7 +132,11 @@
         				BCCode = BCCode + getBCCEndTag(elem)
 
         				if(!tagsSupported.has(elem.nodeName.toUpperCase())){
-        					errors.add( elem.nodeName.toUpperCase() + " is not a supported element type.");
+        					if(HTMLillegal.has(elem.nodeName.toUpperCase())){
+        						warnings.add( elem.nodeName.toUpperCase() + " is not a valid HTML tag, but is a valid BBCode tag.");
+        					}else{
+        						errors.add( elem.nodeName.toUpperCase() + " is not a supported element type.");
+        					}
         				}
         		}
 			}
@@ -123,18 +146,18 @@
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
 				}else if(path.indexOf(".css") >= 0){
 					linkCount = linkCount + 1;
-					console.log(path);
+					//console.log(path);
 					if(path.trim().substring(0,5) == "file:"){
 						path = "http:" + path.trim().substring(6);
 					}
 					$.get( path, function( css ) {
 					  importedCSS = importedCSS + "\n" + css;
-					  warnings.add('External resources from "link" tags are not supported, so the converter extracted the classes that are being used from ' + path);
+					  warnings.add('External resources from "link" tags or @import rules are not supported, so the converter extracted the fonts and CSS styles that are being used from ' + path);
 					}).always(function() {
 					  linkCount = linkCount - 1;
 					});
 				}else{
-					errors.add('The only external resources allowed from "link" tags are .css files or Google Fonts.');
+					errors.add('The only external resources allowed from "link" tags or @import rules are .css files or Google Fonts.');
 				}
 
 				return "";
@@ -175,11 +198,12 @@
 					}
 				}
 				if(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached){ 
-					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has changed them to DIVs with the class .span' ); 
-					useDivSpan = true;
+					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has added a style that ProBoards will not read.' ); 
+					/*useDivSpan = true;
 					tagText = "[div" + tagText.substring(elem.nodeName.length + 1);
 					classes = (classes + " span").trim();
-					elem.nodeName = "DIV";
+					elem.nodeName = "DIV";*/
+					tagText = tagText + ' style="top: auto;"'
 				}
 				tagText = tagText + "]"
 
@@ -190,9 +214,22 @@
 					tagText = tagText + '[attr="id","' + ids + '"]'
 				}
 				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
+					
 					if(tagsUnpaired.has(elem.nodeName.toUpperCase())){
+						tagText = "[div]" + tagText + "[/div]";
+						var formatID ="";
+						var formatClass = "";
+						if( classes != "" ){ formatClass = "." + classes.trim().replace(/(\s+)/g,".") }
+						if( ids != "" ){ formatID = "#" + ids.trim().replace(/(\s+)/g,"#") }
+						if(CSSFixes[elem.nodeName.toLowerCase()]){
+							CSSFixes[elem.nodeName.toLowerCase()] = CSSFixes[elem.nodeName.toLowerCase()] + "," + formatID + " " + formatClass;
+						}else{
+							CSSFixes[elem.nodeName.toLowerCase()] = formatID + " " + formatClass;
+						}
+						warnings.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly, so this converter has tried creating a wrapper div for them." )
+					}else if(tagsUnattachable.has(elem.nodeName.toUpperCase())){
 						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
-					}else if(tagsSupported.has(elem.nodeName.toUpperCase()) && !(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached) ){
+					}else if(tagsSupported.has(elem.nodeName.toUpperCase()) ){
 						warnings.add( "<b>Style Tag pluggin version 2.1.0</b> or later is required for [attr] tags to attach to " + elem.nodeName.toUpperCase() + " elements. Otherwise they will only attach to DIVs." )
 					}
 				}
@@ -204,12 +241,7 @@
 				if(tagsToIgnore.has(elem.nodeName.toUpperCase()) || tagsUnpaired.has(elem.nodeName.toUpperCase())){
 					return "";
 				}else{
-					if(elem.nodeName.toUpperCase() == "SPAN" && elem.style.cssText == ""){
-						// End tag fix for SPAN tags disappearing on quote/edit.
-						return "[/div]"
-					}else{
-						return "[/" + elem.nodeName.toLowerCase() + "]"
-					}
+					return "[/" + elem.nodeName.toLowerCase() + "]";
 				}
 			}
 
@@ -219,6 +251,7 @@
 
 			function getCSSTags(css, isSelective){
 				css = css.replace(/(\r\n|\n|\r)/gm," ").trim() // replace all newline variants
+				css = css.replace(/\/\*[^*]*\*+([^\/*][^*]*\*+)*\//gm," ").trim() // replace all css comments /* */
 				css = css.replace(/(\s+)/g," ").trim() // replace all duplicated spaces
 
 				var i = 0;
@@ -243,7 +276,18 @@
 						if(stringStarter == ""){ lvl = lvl + 1; }
 						if(lvl > 1){classStyle = classStyle + css[i];}
 					}else if(lvl == 0){
-						className = className + css[i];
+						if(css[i] == ";" && stringStarter == ""){
+							var inputRule = /@import\s+(?:url\s*\()?['"]([^'"]*)['"]\)?/i;
+							// This is an at-rule.
+							if((inputRule).test(className)){
+								// This is an import
+								//console.log(className.match(inputRule)[1])
+								BCCode = BCCode + getLinkTag(className.match(inputRule)[1])
+							}
+							className = "";
+						}else{
+							className = className + css[i];
+						}
 					}else if(css[i] == "}"){
 						if(stringStarter == ""){ lvl = lvl - 1; }
 						if(lvl > 0){
@@ -256,21 +300,25 @@
 							}*/
 
 							// Convert classes if needed.
+							var spanWord = /\bspan\b/i;
 							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim()).length > 0 ){
-								if(useDivSpan && (/\bspan\b/gi).test(className.toUpperCase()) ){
+								/*if(useDivSpan && (spanWord).test(className) ){
 									// Duplicate this class for div.span as well as span
 									var selectors = className.toLowerCase().split(",");
 									for(selector in selectors){
-										if((/\bspan\b/gi).test(selectors[selector])){
-											className = className + "," + className.replace(/\bspan\b/gi,"div.span")
+										if((spanWord).test(selectors[selector])){
+											className = className.trim() + "," + selectors[selector].replace(spanWord,"div.span")
 										}
 									}
-								}
-								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@" && className.indexOf("[") < 0){
+								}*/
+								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@" && className.indexOf("[") < 0 ){
 									BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
 									BBCCSS = BBCCSS + classStyle.trim();
 									BBCCSS = BBCCSS + "[/newclass]";
 								}else{
+									if(className.indexOf(">") >= 0){
+										errors.add('The ">" selector can ONLY be entered into the "newclass" start tag, but characters such as "[" or "]" can only be in the body of the newclass tags. These selectors cannot be combined.')
+									}
 									nestedBrackets = nestedBrackets + className.trim() + " {" + classStyle + "} "
 								}
 							}
@@ -289,6 +337,10 @@
 				}
 				return BBCCSS;
 			}
+
+			function toggleInfo(){
+			    $('.infoDisplay').toggle();
+			  }
 
 		</script>
 
@@ -369,12 +421,67 @@
 				text-decoration: none;
 				color: #79ade0;
 			}
+			h1 sub {
+			    position: relative;
+			    display: inline-block;
+			    height: 10px;
+			    font-size: 10px;
+			    letter-spacing: 1px;
+			    left: 5px;
+			    bottom: -6px;
+			    transform-origin: 0 100%;
+			    transform: rotate(-90deg);
+			    opacity: 0.6;
+			}
+			.info {
+				float: right;
+				font: italic bold 1.7em / 2em Georgia, "Times New Roman", Times, serif;
+				margin-right: 20px;
+				display: inline-block;
+				text-align: center;
+				color: #79ade0;
+				cursor: pointer;
+				transition: 0.5s all;
+			}
+			.info:hover{
+				color: #fff;
+			}
+
+			.infoDisplay{
+			    background-color: rgba(21,21,23,.85);
+			    position: absolute; 
+			    left: 0;
+			    top: 0;
+			    right: 0;
+			    bottom: 0;
+			    z-index: 2;
+			    display: flex;
+			    justify-content: center;
+			    align-items: center;
+			  }
+			  .infoPage {
+			  	border: 1px solid #cdcdcd;
+			  	background-color: #ebedf0;
+			    border-radius: 3px;
+			    padding: 10px;
+			  }
 		</style>
 	</head>
 	<body>
 		<div id="banner">
+			<div class="info" onclick="toggleInfo()">i</div>
 			<h1>[ BBCode Converter ]</h1>
 			<h2>Converts HTML & CSS to ProBoards-friendly BBCode</h2>
+		</div>
+
+		<div class="infoDisplay" onclick="toggleInfo()" style="display: none;">
+			<div class="infoPage">
+				<h1>Info</h1>
+				Hi, my name is <a href="http://pixel-perfect.boards.net/user/240">Iceguin</a> -- I make codes sometimes.
+				<br/>I'd genuinely love to hear about any codes you have that aren't properly converted.
+				<br/><br/><b>This page does not currently convert scripts or tabbed templates</b>
+				<br/><br/>And this info popup is a work in progress :/
+		    </div>
 		</div>
 
 		<div class="grouping">
@@ -403,11 +510,6 @@
 
 		<div class="grouping">
 			<div id="issues"></div>
-		</div>
-
-		<div id="credits">
-			Hi, my name is <a href="http://pixel-perfect.boards.net/user/240">Iceguin</a> -- I make codes sometimes.
-			<br/>This page does not currently convert tabbed templates ;n;
 		</div>
 	</body>
 </html>
