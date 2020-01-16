@@ -13,6 +13,7 @@
 			const tagsUnattachable = new Set(["TABLE", "TR"]);
 			//const useDivSpanFix = '[newclass="div.span"]display: inline;[/newclass]'
 			const useImgWrapCssFix = 'width: inherit; height: inherit; max-width: inherit; max-height: inherit; min-width: inherit; min-height: inherit; border-radius: inherit;'
+			const useFontStacks = new Set(["arial","arial black","arial narrow","arial rounded mt bold","avant garde","calibri","candara","century gothic","franklin gothic medium","futura","geneva","gill sans","helvetica","impact","lucida grande","optima","segoe ui","tahoma","trebuchet ms","verdana","big caslon","bodoni mt","book antiqua","calisto mt","cambria","didot","garamond","georgia","goudy old style","hoefler text","lucida bright","palatino","perpetua","rockwell","rockwell extra bold","baskerville","times new roman","consolas","courier new","lucida console","lucida sans typewriter","monaco","andale mono","copperplate","papyrus","brush script mt"])
 
 			var DOMTree = $.parseHTML( $("#html_in").val() );
 			var BCCode = "";
@@ -161,6 +162,8 @@
 					$.get( path, function( css ) {
 					  importedCSS[path] = css;
 					  warnings.add('External resources from "link" tags or @import rules are not supported, so the converter extracted the fonts and CSS styles that are being used from ' + path);
+					}).fail(function() {
+						errors.add( 'The converter was not able to access: ' + path );
 					}).always(function() {
 					  linkCount = linkCount - 1;
 					});
@@ -316,6 +319,29 @@
 										}
 									}
 								}*/
+								// Check fonts
+								var fontStyles = /font(?:-family)?\s*:\s*[^;]+/;
+								if(fontStyles.test(classStyle)){
+									var foundFontStyles = classStyle.match(fontStyles)[0];
+									console.log(foundFontStyles)
+									if(foundFontStyles.indexOf(",") < 0){
+										// No font stack.
+										var foundFont = "";
+										if(foundFontStyles.indexOf("font-family") >= 0){
+											foundFont = foundFontStyles.substring(foundFontStyles.indexOf(":")+1).trim().toLowerCase()
+										}else{
+											var fontFamily = /\s+[a-z,\s]+$/i;
+											if(fontFamily.test(foundFontStyles)){
+												fountFont = foundFontStyles.match(fontFamily)[0].trim().toLowerCase()
+											}
+										}
+										if(useFontStacks.has(foundFont)){
+											fontStackWarning(foundFont);
+										}
+									}
+								}
+
+								// Set tag
 								if(classStyle.indexOf("{") < 0 && className.trim().substring(0,1) != "@" && className.indexOf("[") < 0 ){
 									BBCCSS = BBCCSS + '\n[newclass="' + className.trim() + '"]';
 									BBCCSS = BBCCSS + classStyle.trim();
@@ -329,7 +355,6 @@
 										var parentPathRule = /[^\/]+\/+[^\/]+$/
 										var currentPathRule = /[^\/]+$/
 										var matches = classStyle.match(urlRule);
-										console.log(classStyle)
 										for( url in matches){
 											var replacement = matches[url].replace("../",sourcePath.replace(parentPathRule,""));
 											replacement = replacement.replace("./",sourcePath.replace(currentPathRule,""));
@@ -354,6 +379,10 @@
 					BBCCSS = BBCCSS + '\n[newclass="nullelem"]' + "} " + nestedBrackets.trim().substring(0,nestedBrackets.length-2) + "[/newclass]"
 				}
 				return BBCCSS;
+			}
+
+			function fontStackWarning(font){
+				warnings.add('Not everyone has the font ' + font.toUpperCase() + ' installed on their device. Consider using a <a href="https://www.cssfontstack.com/' + font.replace(" ","-") + '"> font stack</a>!')
 			}
 
 			function toggleInfo(){
@@ -460,6 +489,10 @@
 				color: #79ade0;
 				cursor: pointer;
 				transition: 0.5s all;
+			}
+			a {
+				color: #79ade0;
+				text-decoration: none;
 			}
 			.info:hover{
 				color: #fff;
