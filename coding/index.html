@@ -80,9 +80,9 @@
             		console.log(CSSFixes.img)
             		var imgFixName = "";
             		var imgClasses = CSSFixes.img.split(",")
-            		for(selector in imgClasses){
+            		for(imgSelector in imgClasses){
 	        			if(imgFixName != ""){ imgFixName = imgFixName + ","; }
-	        			imgFixName = imgFixName + imgClasses[selector].replace(/(\s+)/g,"") + " img"
+	        			imgFixName = imgFixName + imgClasses[imgSelector].replace(/(\s+)/g,"") + " img"
 	        		}
             		
             	}
@@ -319,7 +319,7 @@
 										}
 									}
 								}*/
-								// Check fonts
+								// Check fonts.
 								var fontStyles = /font(?:-family)?\s*:\s*[^;]+/;
 								if(fontStyles.test(classStyle)){
 									var foundFontStyles = classStyle.match(fontStyles)[0];
@@ -339,6 +339,18 @@
 											fontStackWarning(foundFont);
 										}
 									}
+								}
+
+								// Shorten class name if possible.
+								if( isSelective && className.indexOf(",") >= 0 ){
+									var shortenedSelector = "";
+									var eachClass = className.split(",");
+									for(var selector in eachClass){
+										if($(DOMTree).find((eachClass[selector] + " ").replace(/(:+[^\s,~<>]+)/g," ").trim()).length == 0){ continue; }
+										if(shortenedSelector != ""){ shortenedSelector = shortenedSelector + ","; }
+										shortenedSelector = shortenedSelector + eachClass[selector];
+									}
+									className = shortenedSelector;
 								}
 
 								// Set tag
