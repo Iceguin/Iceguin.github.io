@@ -25,6 +25,7 @@
 			//var useDivSpan = false;
 			var errors = new Set();
 			var CSSFixes = {}
+			var isTables = false;
 
 			function convert(){
 				// Clear globals from previous conversions.
@@ -36,6 +37,7 @@
 				//useDivSpan = false;
 				CSSBlocks = {};
 				CSSFixes = {};
+				var isTables = false;
 
 				// Parse & write results.
 				var inputText = $("#html_in").val();
@@ -73,21 +75,32 @@
             		newCSSBlock = newCSSBlock + "[/div]";
             		BCCode = BCCode.replace(blockID, newCSSBlock)
             	}
-            	//if(useDivSpan){ BCCode = useDivSpanFix + BCCode }
 
+            	// Add any CSS related to fixes.
             	var imgFixName = "";
             	if(CSSFixes.img){
             		console.log(CSSFixes.img)
             		var imgFixName = "";
+            		var imgFixWrapName = "";
             		var imgClasses = CSSFixes.img.split(",")
             		for(imgSelector in imgClasses){
-	        			if(imgFixName != ""){ imgFixName = imgFixName + ","; }
-	        			imgFixName = imgFixName + imgClasses[imgSelector].replace(/(\s+)/g,"") + " img"
+	        			if(imgFixName != ""){
+	        				imgFixName = imgFixName + ",";
+	        				imgFixWrapName = imgFixWrapName + ",";
+	        			}
+	        			imgFixWrapName = imgFixWrapName + imgClasses[imgSelector].replace(/(\s+)/g,"");
+	        			imgFixName = imgFixName + imgClasses[imgSelector].replace(/(\s+)/g,"") + " img";
 	        		}
             		
             	}
             	if(imgFixName != ""){
-            		BCCode = '[newclass=' + imgFixName + ']' + useImgWrapCssFix + '[/newclass]' + BCCode}
+            		BCCode = '[newclass=' + imgFixName + ']' + useImgWrapCssFix + '[/newclass]' + BCCode
+            		BCCode = '[newclass=' + imgFixWrapName + ']display: inline-block[/newclass]' + BCCode
+            	}
+            	if(isTables){
+            		// Overwride standard PB styling with css defaults.
+            		BCCode = '[newclass=table]border-collapse: separate; table-layout: auto;[/newclass]' + BCCode;
+            	}
 
             	// Place any classes from LINK imports at the top
             	waitForLinkProcessing();
@@ -126,13 +139,19 @@
         				BCCode = BCCode + getLinkTag(elem.href);
         				break;
         			default:
-        				BCCode = BCCode + getBCCStartTag(elem)
+        				var startTag = getBCCStartTag(elem);
+        				var appendEnd = "";
+        				if(startTag.slice(startTag.length - 6) == "[/div]"){
+        					startTag = startTag.slice(0,startTag.length - 6)
+        					appendEnd = "[/div]"
+        				}
+        				BCCode = BCCode + startTag;
         				if(elem.childNodes.length > 0){
         					for(var childElem = 0; childElem < elem.childNodes.length; childElem++){
 			            		HTMLtoBCCode(elem.childNodes[childElem]);
 			            	}
         				}
-        				BCCode = BCCode + getBCCEndTag(elem)
+        				BCCode = BCCode + getBCCEndTag(elem) + appendEnd;
 
         				if(!tagsSupported.has(elem.nodeName.toUpperCase())){
         					if(HTMLillegal.has(elem.nodeName.toUpperCase())){
@@ -153,7 +172,6 @@
 					return "[googlefont=" + path.substring(path.indexOf("family=")+7) + "]"
 				}else if(path.indexOf(".css") >= 0){
 					linkCount = linkCount + 1;
-					//console.log(path);
 					if(path.trim().substring(0,5) == "file:"){
 						path = "http:" + path.trim().substring(6);
 					}else if( path.trim().substring(0,2) == ".." ){
@@ -208,6 +226,7 @@
 						}
 					}
 				}
+				if(elem.nodeName.toUpperCase() == "TABLE"){ isTables = true; }
 				if(elem.nodeName.toUpperCase() == "SPAN" && !styleAttached){ 
 					warnings.add( elem.nodeName.toUpperCase() + ' tags without a style attribute will be removed in the ProBoards editor after editing or quoting the post. This converter has added a style that ProBoards will not display as HTML.' ); 
 					tagText = tagText + ' style="top: auto;"'
@@ -217,31 +236,49 @@
 				if(classes != ""){
 					tagText = tagText + '[attr="class","' + classes + '"]'
 				}
-				if(ids != ""){
+				if(ids != "" && elem.nodeName.toUpperCase() != "TABLE"){
 					tagText = tagText + '[attr="id","' + ids + '"]'
 				}
 				if(elem.nodeName.toUpperCase() != "DIV" && (classes != "" || ids != "") ){
 					
 					if(tagsUnpaired.has(elem.nodeName.toUpperCase())){
+
 						tagText = "[div]" + tagText + "[/div]";
-						var formatID ="";
-						var formatClass = "";
-						if( classes != "" ){ formatClass = "." + classes.trim().replace(/(\s+)/g,".") }
-						if( ids != "" ){ formatID = "#" + ids.trim().replace(/(\s+)/g,"#") }
-						if(CSSFixes[elem.nodeName.toLowerCase()]){
-							CSSFixes[elem.nodeName.toLowerCase()] = CSSFixes[elem.nodeName.toLowerCase()] + "," + formatID + " " + formatClass;
-						}else{
-							CSSFixes[elem.nodeName.toLowerCase()] = formatID + " " + formatClass;
-						}
+						fixAdd(elem.nodeName.toLowerCase(), classes, ids);
 						warnings.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly, so this converter has tried creating a wrapper div for them." )
+
 					}else if(tagsUnattachable.has(elem.nodeName.toUpperCase())){
-						errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
+
+						if(elem.nodeName.toUpperCase() == "TABLE" && ids != ""){
+
+							tagText = '[attr="id","' + ids + '"]' + tagText
+							
+							fixAdd(elem.nodeName.toLowerCase(), "", ids);
+							tagText = "[div]" + tagText + "[/div]";
+							warnings.add( elem.nodeName.toUpperCase() + " tags cannot be given an ID directly, so this converter has tried creating a wrapper div for them." )
+						}else{
+							errors.add( elem.nodeName.toUpperCase() + " tags cannot be given a class or ID directly. Try surrounding it with a wrapper div." )
+						}
+
 					}else if(tagsSupported.has(elem.nodeName.toUpperCase()) ){
+
 						warnings.add( "<b>Style Tag pluggin version 2.1.0</b> or later is required for [attr] tags to attach to " + elem.nodeName.toUpperCase() + " elements. Otherwise they will only attach to DIVs." )
+
 					}
 				}
 				
 				return tagText;
+			}
+
+			function fixAdd(nodeName, classes, ids){
+				var formatID ="";
+				var formatClass = "";
+				if( classes != "" ){ formatClass = "." + classes.trim().replace(/(\s+)/g,".") }
+				if( ids != "" ){ formatID = "#" + ids.trim().replace(/(\s+)/g,"#") }
+				if(CSSFixes[nodeName]){ CSSFixes[nodeName] = CSSFixes[nodeName] + ","; }
+				
+				CSSFixes[nodeName] = (formatID + " " + formatClass).trim();
+
 			}
 
 			function getBCCEndTag(elem){
@@ -261,6 +298,15 @@
 				css = css.replace(/(\r\n|\n|\r)/gm," ").trim() // replace all newline variants
 				css = css.replace(/\/\*[^*]*\*+([^\/*][^*]*\*+)*\//gm," ").trim() // replace all css comments /* */
 				css = css.replace(/(\s+)/g," ").trim() // replace all duplicated spaces
+
+				// Correct table ids if needed.
+				if(CSSFixes.table){
+					var tableIds = CSSFixes.table.split(",");
+					for(tableId in tableIds){
+						var tableReg = new RegExp("(" + tableIds[tableId] + ")([^a-z\-])","gi");
+						css = css.replace(tableReg, "$1 > table$2")
+					}
+				}
 
 				var i = 0;
 				var lvl = 0;
@@ -289,7 +335,6 @@
 							// This is an at-rule.
 							if((inputRule).test(className)){
 								// This is an import
-								//console.log(className.match(inputRule)[1])
 								BCCode = BCCode + getLinkTag(className.match(inputRule)[1], sourcePath)
 							}
 							className = "";
@@ -301,24 +346,9 @@
 						if(lvl > 0){
 							classStyle = classStyle + css[i];
 						}else{
-							/*console.log(className.trim());
-							console.log((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim());
-							if(className.trim().substring(0,1) != "@"){
-								console.log($(DOMTree).find((className.trim() + " ").replace(/(:+[^\s,~<>]+)/g," ")).length)
-							}*/
-
-							// Convert classes if needed.
-							var spanWord = /\bspan\b/i;
+							// Determine if workarounds are needed.
 							if(!isSelective || className.trim().substring(0,1) == "@" || $(DOMTree).find((className + " ").replace(/(:+[^\s,~<>]+)/g," ").trim()).length > 0 ){
-								/*if(useDivSpan && (spanWord).test(className) ){
-									// Duplicate this class for div.span as well as span
-									var selectors = className.toLowerCase().split(",");
-									for(selector in selectors){
-										if((spanWord).test(selectors[selector])){
-											className = className.trim() + "," + selectors[selector].replace(spanWord,"div.span")
-										}
-									}
-								}*/
+								
 								// Check fonts.
 								var fontStyles = /font(?:-family)?\s*:\s*[^;]+/;
 								if(fontStyles.test(classStyle)){
