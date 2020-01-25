@@ -13,7 +13,7 @@
 			const tagsUnattachable = new Set(["TABLE", "TR"]);
 			//const useDivSpanFix = '[newclass="div.span"]display: inline;[/newclass]'
 			const useImgWrapCssFix = 'width: inherit; height: inherit; max-width: inherit; max-height: inherit; min-width: inherit; min-height: inherit; border-radius: inherit;'
-			const useFontStacks = new Set(["arial","arial black","arial narrow","arial rounded mt bold","avant garde","calibri","candara","century gothic","franklin gothic medium","futura","geneva","gill sans","helvetica","impact","lucida grande","optima","segoe ui","tahoma","trebuchet ms","verdana","big caslon","bodoni mt","book antiqua","calisto mt","cambria","didot","garamond","georgia","goudy old style","hoefler text","lucida bright","palatino","perpetua","rockwell","rockwell extra bold","baskerville","times new roman","consolas","courier new","lucida console","lucida sans typewriter","monaco","andale mono","copperplate","papyrus","brush script mt"])
+			const useFontStacks = new Set(["arial narrow","arial rounded mt bold","avant garde","calibri","candara","century gothic","franklin gothic medium","futura","geneva","gill sans","helvetica","lucida grande","optima","segoe ui","tahoma","big caslon","bodoni mt","book antiqua","calisto mt","cambria","didot","garamond","goudy old style","hoefler text","lucida bright","palatino","perpetua","rockwell","rockwell extra bold","baskerville","consolas","courier new","lucida console","lucida sans typewriter","monaco","andale mono","copperplate","papyrus","brush script mt"])
 
 			var DOMTree = $.parseHTML( $("#html_in").val() );
 			var BCCode = "";
@@ -212,17 +212,19 @@
 				var styleAttached = false;
 				if(elem.attributes.length > 0){
 					for(var attr = 0; attr < elem.attributes.length; attr++){
+						var attrValue = elem.attributes[attr].value.trim();
 						switch(elem.attributes[attr].name.toUpperCase()){
 							case "CLASS":
-								classes = elem.attributes[attr].value.trim();
+								classes = attrValue;
 								break;
 							case "ID":
-								ids = elem.attributes[attr].value;
+								ids = attrValue;
 								break;
 							case "STYLE":
 								styleAttached = true;
+								attrValue = attrValue.replace(/"/g,'').replace(/'/g,''); // ' and " characters are not preserved by PB when in a style declaration
 							default:
-								tagText = tagText + " " + elem.attributes[attr].name + "=" + '"' + elem.attributes[attr].value + '"';
+								tagText = tagText + " " + elem.attributes[attr].name + '="' + attrValue + '"';
 						}
 					}
 				}
