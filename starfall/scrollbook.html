@@ -28,7 +28,7 @@
         spellList[Spell].Synthesis.replace("(LIM)", "<li>Limited Use Items</li>").replace("(RES)", "<li>Reusable Items</li>").replace("(PERM-ALL)", "<li>Permanents for any witch</li>").replace("(COM)", "<li>Companion</li>").replace("(PERM-AFFONLY)", "<li>Permanents for " + spellList[Spell].Category + " witches</li>") + "</ul></div>"
     }
     
-    spellHTML = spellHTML + spellList[Spell].Description.replace("[", "<").replace("]", ">")
+    spellHTML = spellHTML + spellList[Spell].Description.replace(/[[]/g, "<").replace(/]/g, ">")
     if( spellList[Spell].Requirements.search("PREREQ") != -1 ){
       spellHTML = spellHTML + "<br/><b>Requires ability of: </b>" + spellList[Spell].Requirements.substring(spellList[Spell].Requirements.search("PREREQ") + 8)
     }
