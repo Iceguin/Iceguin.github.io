@@ -47,17 +47,6 @@ table[data-daysbefore="0"] .after {
 </head>
 <body>
 
-  <!-- XMAS SPECIAL
-  <img src="https://img.freepik.com/free-vector/red-ribbon-bow_1284-3680.jpg?size=338&ext=jpg" style="float:left; margin-top: -7px; margin-left:-7px">
-  <img src="https://www.aprettylifeinthesuburbs.com/wp-content/uploads/2013/12/Merry-Christmas-A-Pretty-Life.jpg" style="margin-top: -7px;">
-  <br><div style="text-align:center"><b>With this update, the following comics have been added:</b>
-  <br>Dilbert
-  <br>B.C.
-  <br>Baby Blues
-  <br>Prince Valiant
-  <br><br><br>
-</div>-->
-
 <div id="bottom">
 </div>
 
@@ -257,13 +246,13 @@ table[data-daysbefore="0"] .after {
     }
 
     /* get Dilbert */
-    var dil_comicpath = 'https://dilbert.com/strip/' + thisYear + '-' + thisMonth + '-' + thisDay
+    var dil_comicpath = getComicPath('dilbert',0);
     doCORSRequest('dilbert', {
           method: 'GET',
           url: dil_comicpath
           }, function printDilComics(id, dil_result) {
             var dil_imgsrc = $('.img-comic', $.parseHTML(dil_result)).attr('src');
-            appendComic('Dilbert', 'https:' + dil_imgsrc, id);
+            appendComic('Dilbert', dil_imgsrc, id);
         }
       );
     /* get B.C. */
