@@ -47,6 +47,15 @@ table[data-daysbefore="0"] .after {
 </head>
 <body>
 
+<div style="margin: 20px 0%; border-radius: 20px; border: 1px solid lightblue; padding: 15px;">
+    To view these comics, please download the <b>"Cross Domain - CORS"</b> plugin for your browser(s): <a href="https://chrome.google.com/webstore/detail/cross-domain-cors/mjhpgnbimicffchbodmgfnemoghjakai">Chrome</a> / <a href="https://addons.mozilla.org/en-US/firefox/addon/cross-domain-cors/">Firefox</a>
+    <br/><br/>
+    For added security, click on the plugin icon and add only the following URLs:
+    <ul><li>dilbert.com</li>
+    <li>gocomics.com</li>
+    <li>comicskingdom.com</li>
+    <li>johnhartstudios.com</li></ul>
+</div>
 <div id="bottom">
 </div>
 
@@ -102,7 +111,7 @@ table[data-daysbefore="0"] .after {
 
   function doCORSRequest(id, options, printResult, count) {
     var x = new XMLHttpRequest();
-    x.open(options.method, cors_api_url + options.url);
+    x.open(options.method, options.url);
     x.onload = function() {
       printResult(id, x.responseText);
     };
