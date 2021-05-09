@@ -152,7 +152,7 @@ table[data-daysbefore="0"] .after {
     if($.inArray(comicid, comics) !== -1){
       return $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
     }else if($.inArray(comicid, comicsKing) !== -1){
-      return $('img.buy-print-image', $.parseHTML(result)).attr('src');
+      return $('img.buy-print-image', $.parseHTML(result)).attr('src').replace("&amp;","&");
     }else if(comicid == 'dilbert'){
       return 'https:' + $('.img-comic', $.parseHTML(result)).attr('src');
     }else if(comicid == 'bc'){
@@ -177,7 +177,6 @@ table[data-daysbefore="0"] .after {
     $(e).parents( "table" ).attr( "data-daysbefore", daysback + daymodifier )
     
     var comicpath = getComicPath(comicid, daysback + daymodifier);
-    console.log(comicpath)
 
     doCORSRequest(comicid, {
           method: 'GET',
@@ -199,7 +198,6 @@ table[data-daysbefore="0"] .after {
     $(e).parents( "table" ).attr( "data-daysbefore", daysback - daymodifier )
     
     var comicpath = getComicPath(comicid, daysback - daymodifier);
-    console.log(comicpath)
 
     doCORSRequest(comicid, {
           method: 'GET',
@@ -223,33 +221,33 @@ table[data-daysbefore="0"] .after {
 
     /* get all comics available on gocomics */
     for(var n = 0; n < comics.length; n++){
-      console.log(comics[n])
-    	var comicpath = 'https://www.gocomics.com/' + comics[n] + '/'+thisYear+'/'+thisMonth+'/'+thisDay
+        var comicpath = getComicPath(comics[n], 0);
     	doCORSRequest(comics[n], {
         	method: 'GET',
         	url: comicpath
       		}, function printGoComics(id, result) {
-		      	var imgsrc = $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+		      	var imgsrc = getImgURL(id,result);
             if(imgsrc) { 
               var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
               appendComic(comictitle, imgsrc, id);
-            }
+            }else{ console.log("Failed to load " + id) }
 		    }
     	);
     }
 
     /* get all Comic Kingdom */
     for(var n = 0; n < comicsKing.length; n++){
-      var pv_comicpath = 'http://comicskingdom.com/' + comicsKing[n] + '/' + thisYear + '-' + thisMonth + '-' + thisDay; // can use date, but optional
+        
+      var pv_comicpath = getComicPath(comicsKing[n], 0);
       doCORSRequest(comicsKing[n], {
           method: 'GET',
           url: pv_comicpath
           }, function printKingdomComics(id, king_result) {
-            var pv_imgsrc = $('img.buy-print-image', $.parseHTML(king_result)).attr('src');
+            var pv_imgsrc = getImgURL(id,king_result);
             var comictitle = $('div.comic-title', $.parseHTML(king_result)).html();
             if(pv_imgsrc){
               appendComic(comictitle, pv_imgsrc, id);
-            }
+            }else{ console.log("Failed to load " + id) }
         }
       );
     }
@@ -265,7 +263,7 @@ table[data-daysbefore="0"] .after {
         }
       );
     /* get B.C. */
-    var bc_comicpath = 'https://johnhartstudios.com/bc/' + thisYear + '/' + thisMonth + '/' + thisDay
+    var bc_comicpath = getComicPath('bc',0);
     doCORSRequest('bc', {
           method: 'GET',
           url: bc_comicpath
