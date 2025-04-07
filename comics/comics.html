@@ -155,7 +155,7 @@ table[data-daysbefore="0"] .after {
 
   function getImgURL(comicid,result){
     if($.inArray(comicid, comics) !== -1){
-      return $('.comic__image img.img-fluid', $.parseHTML(result)).attr('src');
+      return $('[class^="ComicViewer"] [class^="Comic_comic__image__"]', $.parseHTML(result)).attr('src');
     }else if($.inArray(comicid, comicsKing) !== -1){
       return $('img.buy-print-image', $.parseHTML(result)).attr('src').replace("&amp;","&");
     }else if(comicid == 'dilbert'){
@@ -235,7 +235,7 @@ table[data-daysbefore="0"] .after {
             if(imgsrc) { 
               var comictitle = $('h2.media-heading', $.parseHTML(result)).text();
               appendComic(comictitle, imgsrc, id);
-            }else{ console.log("Failed to load " + id) }
+            }else{ console.log("Failed to load " + id + " from " + result) }
 		    }
     	);
     }
