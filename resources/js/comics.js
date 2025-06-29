@@ -31,7 +31,6 @@ var comics = [ // from https://www.gocomics.com/
     'zits',
     'nonsequitur',
     'forbetterorforworse',
-    'andycapp',
     'bloomcounty',
     'broomhilda',
     'cathy',
@@ -63,7 +62,7 @@ function doCORSRequest(id, options, printResult, count) {
     };
     if (count < 3) {
         x.onerror = doCORSRequest(options, printResult, count + 1)
-        if (count > 0) { console.log('Count is ' + count + ' for ' + options.url) }
+        if (count > 0) { console.log('Load attempt number ' + count + ' for ' + options.url) }
     } else {
         x.onerror = x.onload;
     }
@@ -96,7 +95,8 @@ function getComicPath(comicid, daysback) {
 
 function getImgURL(comicid, result) {
     if ($.inArray(comicid, comics) !== -1) {
-        return $('[class^="ScrollContainer_scrollZone"] [class^="Comic_comic__image__"]', $.parseHTML(result)).attr('src');
+        img = $("meta[property='og:image']", $.parseHTML("<div>" + result + "</div>"))
+        return img.attr("content")
     } else if ($.inArray(comicid, comicsKing) !== -1) {
         return $('img.buy-print-image', $.parseHTML(result)).attr('src').replace("&amp;", "&");
     //} else if (comicid == 'dilbert') {
@@ -172,6 +172,7 @@ $(document).ready(function () {
             method: 'GET',
             url: comicpath
         }, function printGoComics(id, result) {
+            testresult = result
             var imgsrc = getImgURL(id, result);
             if (imgsrc) {
                 var comictitle = $('h1[class^="Typography_typography"]', $.parseHTML(result)).text();
